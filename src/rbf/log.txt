@@ -1,0 +1,1498 @@
+
+***** In RBF Test Case 10 *****
+loaded RID #0: 0, 0
+loaded RID #1000: 0, 4
+loaded Sizes #0: 154
+loaded Sizes #1000: 154
+
+---------READING RECORD---------
+13
+110
+4080
+Offset from origin : 0
+Slot size : 238
+Fields : 30
+My format8
+Req format4
+Updated bitarray
+00000000000000000000000000000000
+END PTRS----------------30
+Offset ptrs : 8
+Actual data ptrs : 128
+128
+4
+------------0
+END POS : 131
+Offset Ptrs : 12
+SIZE : 3
+4
+Offset write : 8
+Offset actual data : 131
+Offset write : 11
+
+------------1
+END POS : 135
+Offset Ptrs : 16
+SIZE : 4
+Offset actual data : 135
+Offset write : 15
+
+------------2
+END POS : 139
+Offset Ptrs : 20
+SIZE : 4
+Offset actual data : 139
+Offset write : 19
+
+------------3
+END POS : 142
+Offset Ptrs : 24
+SIZE : 3
+19
+Offset write : 23
+Offset actual data : 142
+Offset write : 26
+
+------------4
+END POS : 146
+Offset Ptrs : 28
+SIZE : 4
+Offset actual data : 146
+Offset write : 30
+
+------------5
+END POS : 150
+Offset Ptrs : 32
+SIZE : 4
+Offset actual data : 150
+Offset write : 34
+
+------------6
+END POS : 153
+Offset Ptrs : 36
+SIZE : 3
+34
+Offset write : 38
+Offset actual data : 153
+Offset write : 41
+
+------------7
+END POS : 157
+Offset Ptrs : 40
+SIZE : 4
+Offset actual data : 157
+Offset write : 45
+
+------------8
+END POS : 161
+Offset Ptrs : 44
+SIZE : 4
+Offset actual data : 161
+Offset write : 49
+
+------------9
+END POS : 164
+Offset Ptrs : 48
+SIZE : 3
+49
+Offset write : 53
+Offset actual data : 164
+Offset write : 56
+
+------------10
+END POS : 168
+Offset Ptrs : 52
+SIZE : 4
+Offset actual data : 168
+Offset write : 60
+
+------------11
+END POS : 172
+Offset Ptrs : 56
+SIZE : 4
+Offset actual data : 172
+Offset write : 64
+
+------------12
+END POS : 175
+Offset Ptrs : 60
+SIZE : 3
+64
+Offset write : 68
+Offset actual data : 175
+Offset write : 71
+
+------------13
+END POS : 179
+Offset Ptrs : 64
+SIZE : 4
+Offset actual data : 179
+Offset write : 75
+
+------------14
+END POS : 183
+Offset Ptrs : 68
+SIZE : 4
+Offset actual data : 183
+Offset write : 79
+
+------------15
+END POS : 186
+Offset Ptrs : 72
+SIZE : 3
+79
+Offset write : 83
+Offset actual data : 186
+Offset write : 86
+
+------------16
+END POS : 190
+Offset Ptrs : 76
+SIZE : 4
+Offset actual data : 190
+Offset write : 90
+
+------------17
+END POS : 194
+Offset Ptrs : 80
+SIZE : 4
+Offset actual data : 194
+Offset write : 94
+
+------------18
+END POS : 197
+Offset Ptrs : 84
+SIZE : 3
+94
+Offset write : 98
+Offset actual data : 197
+Offset write : 101
+
+------------19
+END POS : 201
+Offset Ptrs : 88
+SIZE : 4
+Offset actual data : 201
+Offset write : 105
+
+------------20
+END POS : 205
+Offset Ptrs : 92
+SIZE : 4
+Offset actual data : 205
+Offset write : 109
+
+------------21
+END POS : 208
+Offset Ptrs : 96
+SIZE : 3
+109
+Offset write : 113
+Offset actual data : 208
+Offset write : 116
+
+------------22
+END POS : 212
+Offset Ptrs : 100
+SIZE : 4
+Offset actual data : 212
+Offset write : 120
+
+------------23
+END POS : 216
+Offset Ptrs : 104
+SIZE : 4
+Offset actual data : 216
+Offset write : 124
+
+------------24
+END POS : 219
+Offset Ptrs : 108
+SIZE : 3
+124
+Offset write : 128
+Offset actual data : 219
+Offset write : 131
+
+------------25
+END POS : 223
+Offset Ptrs : 112
+SIZE : 4
+Offset actual data : 223
+Offset write : 135
+
+------------26
+END POS : 227
+Offset Ptrs : 116
+SIZE : 4
+Offset actual data : 227
+Offset write : 139
+
+------------27
+END POS : 230
+Offset Ptrs : 120
+SIZE : 3
+139
+Offset write : 143
+Offset actual data : 230
+Offset write : 146
+
+------------28
+END POS : 234
+Offset Ptrs : 124
+SIZE : 4
+Offset actual data : 234
+Offset write : 150
+
+------------29
+END POS : 238
+Offset Ptrs : 128
+SIZE : 4
+Offset actual data : 238
+Offset write : 154
+
+
+Returned Data:
+---------Printing-----------
+30
+Updated bitarray
+00000000000000000000000000000000
+Char0 : ccc	Int0 : 0	Real0 : 1	Char1 : ccc	Int1 : 0	Real1 : 1	Char2 : ccc	Int2 : 0	Real2 : 1	Char3 : ccc	Int3 : 0	Real3 : 1	Char4 : ccc	Int4 : 0	Real4 : 1	Char5 : ccc	Int5 : 0	Real5 : 1	Char6 : ccc	Int6 : 0	Real6 : 1	Char7 : ccc	Int7 : 0	Real7 : 1	Char8 : ccc	Int8 : 0	Real8 : 1	Char9 : ccc	Int9 : 0	Real9 : 1	
+---------end of printing----------
+
+---------READING RECORD---------
+13
+110
+4072
+Offset from origin : 238
+Slot size : 248
+Fields : 30
+My format8
+Req format4
+Updated bitarray
+00000000000000000000000000000000
+END PTRS----------------30
+Offset ptrs : 8
+Actual data ptrs : 128
+128
+4
+------------0
+END POS : 132
+Offset Ptrs : 12
+SIZE : 4
+4
+Offset write : 8
+Offset actual data : 132
+Offset write : 12
+
+------------1
+END POS : 136
+Offset Ptrs : 16
+SIZE : 4
+Offset actual data : 136
+Offset write : 16
+
+------------2
+END POS : 140
+Offset Ptrs : 20
+SIZE : 4
+Offset actual data : 140
+Offset write : 20
+
+------------3
+END POS : 144
+Offset Ptrs : 24
+SIZE : 4
+20
+Offset write : 24
+Offset actual data : 144
+Offset write : 28
+
+------------4
+END POS : 148
+Offset Ptrs : 28
+SIZE : 4
+Offset actual data : 148
+Offset write : 32
+
+------------5
+END POS : 152
+Offset Ptrs : 32
+SIZE : 4
+Offset actual data : 152
+Offset write : 36
+
+------------6
+END POS : 156
+Offset Ptrs : 36
+SIZE : 4
+36
+Offset write : 40
+Offset actual data : 156
+Offset write : 44
+
+------------7
+END POS : 160
+Offset Ptrs : 40
+SIZE : 4
+Offset actual data : 160
+Offset write : 48
+
+------------8
+END POS : 164
+Offset Ptrs : 44
+SIZE : 4
+Offset actual data : 164
+Offset write : 52
+
+------------9
+END POS : 168
+Offset Ptrs : 48
+SIZE : 4
+52
+Offset write : 56
+Offset actual data : 168
+Offset write : 60
+
+------------10
+END POS : 172
+Offset Ptrs : 52
+SIZE : 4
+Offset actual data : 172
+Offset write : 64
+
+------------11
+END POS : 176
+Offset Ptrs : 56
+SIZE : 4
+Offset actual data : 176
+Offset write : 68
+
+------------12
+END POS : 180
+Offset Ptrs : 60
+SIZE : 4
+68
+Offset write : 72
+Offset actual data : 180
+Offset write : 76
+
+------------13
+END POS : 184
+Offset Ptrs : 64
+SIZE : 4
+Offset actual data : 184
+Offset write : 80
+
+------------14
+END POS : 188
+Offset Ptrs : 68
+SIZE : 4
+Offset actual data : 188
+Offset write : 84
+
+------------15
+END POS : 192
+Offset Ptrs : 72
+SIZE : 4
+84
+Offset write : 88
+Offset actual data : 192
+Offset write : 92
+
+------------16
+END POS : 196
+Offset Ptrs : 76
+SIZE : 4
+Offset actual data : 196
+Offset write : 96
+
+------------17
+END POS : 200
+Offset Ptrs : 80
+SIZE : 4
+Offset actual data : 200
+Offset write : 100
+
+------------18
+END POS : 204
+Offset Ptrs : 84
+SIZE : 4
+100
+Offset write : 104
+Offset actual data : 204
+Offset write : 108
+
+------------19
+END POS : 208
+Offset Ptrs : 88
+SIZE : 4
+Offset actual data : 208
+Offset write : 112
+
+------------20
+END POS : 212
+Offset Ptrs : 92
+SIZE : 4
+Offset actual data : 212
+Offset write : 116
+
+------------21
+END POS : 216
+Offset Ptrs : 96
+SIZE : 4
+116
+Offset write : 120
+Offset actual data : 216
+Offset write : 124
+
+------------22
+END POS : 220
+Offset Ptrs : 100
+SIZE : 4
+Offset actual data : 220
+Offset write : 128
+
+------------23
+END POS : 224
+Offset Ptrs : 104
+SIZE : 4
+Offset actual data : 224
+Offset write : 132
+
+------------24
+END POS : 228
+Offset Ptrs : 108
+SIZE : 4
+132
+Offset write : 136
+Offset actual data : 228
+Offset write : 140
+
+------------25
+END POS : 232
+Offset Ptrs : 112
+SIZE : 4
+Offset actual data : 232
+Offset write : 144
+
+------------26
+END POS : 236
+Offset Ptrs : 116
+SIZE : 4
+Offset actual data : 236
+Offset write : 148
+
+------------27
+END POS : 240
+Offset Ptrs : 120
+SIZE : 4
+148
+Offset write : 152
+Offset actual data : 240
+Offset write : 156
+
+------------28
+END POS : 244
+Offset Ptrs : 124
+SIZE : 4
+Offset actual data : 244
+Offset write : 160
+
+------------29
+END POS : 248
+Offset Ptrs : 128
+SIZE : 4
+Offset actual data : 248
+Offset write : 164
+
+
+---------READING RECORD---------
+13
+110
+4064
+Offset from origin : 486
+Slot size : 258
+Fields : 30
+My format8
+Req format4
+Updated bitarray
+00000000000000000000000000000000
+END PTRS----------------30
+Offset ptrs : 8
+Actual data ptrs : 128
+128
+4
+------------0
+END POS : 133
+Offset Ptrs : 12
+SIZE : 5
+4
+Offset write : 8
+Offset actual data : 133
+Offset write : 13
+
+------------1
+END POS : 137
+Offset Ptrs : 16
+SIZE : 4
+Offset actual data : 137
+Offset write : 17
+
+------------2
+END POS : 141
+Offset Ptrs : 20
+SIZE : 4
+Offset actual data : 141
+Offset write : 21
+
+------------3
+END POS : 146
+Offset Ptrs : 24
+SIZE : 5
+21
+Offset write : 25
+Offset actual data : 146
+Offset write : 30
+
+------------4
+END POS : 150
+Offset Ptrs : 28
+SIZE : 4
+Offset actual data : 150
+Offset write : 34
+
+------------5
+END POS : 154
+Offset Ptrs : 32
+SIZE : 4
+Offset actual data : 154
+Offset write : 38
+
+------------6
+END POS : 159
+Offset Ptrs : 36
+SIZE : 5
+38
+Offset write : 42
+Offset actual data : 159
+Offset write : 47
+
+------------7
+END POS : 163
+Offset Ptrs : 40
+SIZE : 4
+Offset actual data : 163
+Offset write : 51
+
+------------8
+END POS : 167
+Offset Ptrs : 44
+SIZE : 4
+Offset actual data : 167
+Offset write : 55
+
+------------9
+END POS : 172
+Offset Ptrs : 48
+SIZE : 5
+55
+Offset write : 59
+Offset actual data : 172
+Offset write : 64
+
+------------10
+END POS : 176
+Offset Ptrs : 52
+SIZE : 4
+Offset actual data : 176
+Offset write : 68
+
+------------11
+END POS : 180
+Offset Ptrs : 56
+SIZE : 4
+Offset actual data : 180
+Offset write : 72
+
+------------12
+END POS : 185
+Offset Ptrs : 60
+SIZE : 5
+72
+Offset write : 76
+Offset actual data : 185
+Offset write : 81
+
+------------13
+END POS : 189
+Offset Ptrs : 64
+SIZE : 4
+Offset actual data : 189
+Offset write : 85
+
+------------14
+END POS : 193
+Offset Ptrs : 68
+SIZE : 4
+Offset actual data : 193
+Offset write : 89
+
+------------15
+END POS : 198
+Offset Ptrs : 72
+SIZE : 5
+89
+Offset write : 93
+Offset actual data : 198
+Offset write : 98
+
+------------16
+END POS : 202
+Offset Ptrs : 76
+SIZE : 4
+Offset actual data : 202
+Offset write : 102
+
+------------17
+END POS : 206
+Offset Ptrs : 80
+SIZE : 4
+Offset actual data : 206
+Offset write : 106
+
+------------18
+END POS : 211
+Offset Ptrs : 84
+SIZE : 5
+106
+Offset write : 110
+Offset actual data : 211
+Offset write : 115
+
+------------19
+END POS : 215
+Offset Ptrs : 88
+SIZE : 4
+Offset actual data : 215
+Offset write : 119
+
+------------20
+END POS : 219
+Offset Ptrs : 92
+SIZE : 4
+Offset actual data : 219
+Offset write : 123
+
+------------21
+END POS : 224
+Offset Ptrs : 96
+SIZE : 5
+123
+Offset write : 127
+Offset actual data : 224
+Offset write : 132
+
+------------22
+END POS : 228
+Offset Ptrs : 100
+SIZE : 4
+Offset actual data : 228
+Offset write : 136
+
+------------23
+END POS : 232
+Offset Ptrs : 104
+SIZE : 4
+Offset actual data : 232
+Offset write : 140
+
+------------24
+END POS : 237
+Offset Ptrs : 108
+SIZE : 5
+140
+Offset write : 144
+Offset actual data : 237
+Offset write : 149
+
+------------25
+END POS : 241
+Offset Ptrs : 112
+SIZE : 4
+Offset actual data : 241
+Offset write : 153
+
+------------26
+END POS : 245
+Offset Ptrs : 116
+SIZE : 4
+Offset actual data : 245
+Offset write : 157
+
+------------27
+END POS : 250
+Offset Ptrs : 120
+SIZE : 5
+157
+Offset write : 161
+Offset actual data : 250
+Offset write : 166
+
+------------28
+END POS : 254
+Offset Ptrs : 124
+SIZE : 4
+Offset actual data : 254
+Offset write : 170
+
+------------29
+END POS : 258
+Offset Ptrs : 128
+SIZE : 4
+Offset actual data : 258
+Offset write : 174
+
+
+---------READING RECORD---------
+13
+110
+4056
+Offset from origin : 744
+Slot size : 268
+Fields : 30
+My format8
+Req format4
+Updated bitarray
+00000000000000000000000000000000
+END PTRS----------------30
+Offset ptrs : 8
+Actual data ptrs : 128
+128
+4
+------------0
+END POS : 134
+Offset Ptrs : 12
+SIZE : 6
+4
+Offset write : 8
+Offset actual data : 134
+Offset write : 14
+
+------------1
+END POS : 138
+Offset Ptrs : 16
+SIZE : 4
+Offset actual data : 138
+Offset write : 18
+
+------------2
+END POS : 142
+Offset Ptrs : 20
+SIZE : 4
+Offset actual data : 142
+Offset write : 22
+
+------------3
+END POS : 148
+Offset Ptrs : 24
+SIZE : 6
+22
+Offset write : 26
+Offset actual data : 148
+Offset write : 32
+
+------------4
+END POS : 152
+Offset Ptrs : 28
+SIZE : 4
+Offset actual data : 152
+Offset write : 36
+
+------------5
+END POS : 156
+Offset Ptrs : 32
+SIZE : 4
+Offset actual data : 156
+Offset write : 40
+
+------------6
+END POS : 162
+Offset Ptrs : 36
+SIZE : 6
+40
+Offset write : 44
+Offset actual data : 162
+Offset write : 50
+
+------------7
+END POS : 166
+Offset Ptrs : 40
+SIZE : 4
+Offset actual data : 166
+Offset write : 54
+
+------------8
+END POS : 170
+Offset Ptrs : 44
+SIZE : 4
+Offset actual data : 170
+Offset write : 58
+
+------------9
+END POS : 176
+Offset Ptrs : 48
+SIZE : 6
+58
+Offset write : 62
+Offset actual data : 176
+Offset write : 68
+
+------------10
+END POS : 180
+Offset Ptrs : 52
+SIZE : 4
+Offset actual data : 180
+Offset write : 72
+
+------------11
+END POS : 184
+Offset Ptrs : 56
+SIZE : 4
+Offset actual data : 184
+Offset write : 76
+
+------------12
+END POS : 190
+Offset Ptrs : 60
+SIZE : 6
+76
+Offset write : 80
+Offset actual data : 190
+Offset write : 86
+
+------------13
+END POS : 194
+Offset Ptrs : 64
+SIZE : 4
+Offset actual data : 194
+Offset write : 90
+
+------------14
+END POS : 198
+Offset Ptrs : 68
+SIZE : 4
+Offset actual data : 198
+Offset write : 94
+
+------------15
+END POS : 204
+Offset Ptrs : 72
+SIZE : 6
+94
+Offset write : 98
+Offset actual data : 204
+Offset write : 104
+
+------------16
+END POS : 208
+Offset Ptrs : 76
+SIZE : 4
+Offset actual data : 208
+Offset write : 108
+
+------------17
+END POS : 212
+Offset Ptrs : 80
+SIZE : 4
+Offset actual data : 212
+Offset write : 112
+
+------------18
+END POS : 218
+Offset Ptrs : 84
+SIZE : 6
+112
+Offset write : 116
+Offset actual data : 218
+Offset write : 122
+
+------------19
+END POS : 222
+Offset Ptrs : 88
+SIZE : 4
+Offset actual data : 222
+Offset write : 126
+
+------------20
+END POS : 226
+Offset Ptrs : 92
+SIZE : 4
+Offset actual data : 226
+Offset write : 130
+
+------------21
+END POS : 232
+Offset Ptrs : 96
+SIZE : 6
+130
+Offset write : 134
+Offset actual data : 232
+Offset write : 140
+
+------------22
+END POS : 236
+Offset Ptrs : 100
+SIZE : 4
+Offset actual data : 236
+Offset write : 144
+
+------------23
+END POS : 240
+Offset Ptrs : 104
+SIZE : 4
+Offset actual data : 240
+Offset write : 148
+
+------------24
+END POS : 246
+Offset Ptrs : 108
+SIZE : 6
+148
+Offset write : 152
+Offset actual data : 246
+Offset write : 158
+
+------------25
+END POS : 250
+Offset Ptrs : 112
+SIZE : 4
+Offset actual data : 250
+Offset write : 162
+
+------------26
+END POS : 254
+Offset Ptrs : 116
+SIZE : 4
+Offset actual data : 254
+Offset write : 166
+
+------------27
+END POS : 260
+Offset Ptrs : 120
+SIZE : 6
+166
+Offset write : 170
+Offset actual data : 260
+Offset write : 176
+
+------------28
+END POS : 264
+Offset Ptrs : 124
+SIZE : 4
+Offset actual data : 264
+Offset write : 180
+
+------------29
+END POS : 268
+Offset Ptrs : 128
+SIZE : 4
+Offset actual data : 268
+Offset write : 184
+
+
+---------READING RECORD---------
+13
+110
+4048
+Offset from origin : 1012
+Slot size : 278
+Fields : 30
+My format8
+Req format4
+Updated bitarray
+00000000000000000000000000000000
+END PTRS----------------30
+Offset ptrs : 8
+Actual data ptrs : 128
+128
+4
+------------0
+END POS : 135
+Offset Ptrs : 12
+SIZE : 7
+4
+Offset write : 8
+Offset actual data : 135
+Offset write : 15
+
+------------1
+END POS : 139
+Offset Ptrs : 16
+SIZE : 4
+Offset actual data : 139
+Offset write : 19
+
+------------2
+END POS : 143
+Offset Ptrs : 20
+SIZE : 4
+Offset actual data : 143
+Offset write : 23
+
+------------3
+END POS : 150
+Offset Ptrs : 24
+SIZE : 7
+23
+Offset write : 27
+Offset actual data : 150
+Offset write : 34
+
+------------4
+END POS : 154
+Offset Ptrs : 28
+SIZE : 4
+Offset actual data : 154
+Offset write : 38
+
+------------5
+END POS : 158
+Offset Ptrs : 32
+SIZE : 4
+Offset actual data : 158
+Offset write : 42
+
+------------6
+END POS : 165
+Offset Ptrs : 36
+SIZE : 7
+42
+Offset write : 46
+Offset actual data : 165
+Offset write : 53
+
+------------7
+END POS : 169
+Offset Ptrs : 40
+SIZE : 4
+Offset actual data : 169
+Offset write : 57
+
+------------8
+END POS : 173
+Offset Ptrs : 44
+SIZE : 4
+Offset actual data : 173
+Offset write : 61
+
+------------9
+END POS : 180
+Offset Ptrs : 48
+SIZE : 7
+61
+Offset write : 65
+Offset actual data : 180
+Offset write : 72
+
+------------10
+END POS : 184
+Offset Ptrs : 52
+SIZE : 4
+Offset actual data : 184
+Offset write : 76
+
+------------11
+END POS : 188
+Offset Ptrs : 56
+SIZE : 4
+Offset actual data : 188
+Offset write : 80
+
+------------12
+END POS : 195
+Offset Ptrs : 60
+SIZE : 7
+80
+Offset write : 84
+Offset actual data : 195
+Offset write : 91
+
+------------13
+END POS : 199
+Offset Ptrs : 64
+SIZE : 4
+Offset actual data : 199
+Offset write : 95
+
+------------14
+END POS : 203
+Offset Ptrs : 68
+SIZE : 4
+Offset actual data : 203
+Offset write : 99
+
+------------15
+END POS : 210
+Offset Ptrs : 72
+SIZE : 7
+99
+Offset write : 103
+Offset actual data : 210
+Offset write : 110
+
+------------16
+END POS : 214
+Offset Ptrs : 76
+SIZE : 4
+Offset actual data : 214
+Offset write : 114
+
+------------17
+END POS : 218
+Offset Ptrs : 80
+SIZE : 4
+Offset actual data : 218
+Offset write : 118
+
+------------18
+END POS : 225
+Offset Ptrs : 84
+SIZE : 7
+118
+Offset write : 122
+Offset actual data : 225
+Offset write : 129
+
+------------19
+END POS : 229
+Offset Ptrs : 88
+SIZE : 4
+Offset actual data : 229
+Offset write : 133
+
+------------20
+END POS : 233
+Offset Ptrs : 92
+SIZE : 4
+Offset actual data : 233
+Offset write : 137
+
+------------21
+END POS : 240
+Offset Ptrs : 96
+SIZE : 7
+137
+Offset write : 141
+Offset actual data : 240
+Offset write : 148
+
+------------22
+END POS : 244
+Offset Ptrs : 100
+SIZE : 4
+Offset actual data : 244
+Offset write : 152
+
+------------23
+END POS : 248
+Offset Ptrs : 104
+SIZE : 4
+Offset actual data : 248
+Offset write : 156
+
+------------24
+END POS : 255
+Offset Ptrs : 108
+SIZE : 7
+156
+Offset write : 160
+Offset actual data : 255
+Offset write : 167
+
+------------25
+END POS : 259
+Offset Ptrs : 112
+SIZE : 4
+Offset actual data : 259
+Offset write : 171
+
+------------26
+END POS : 263
+Offset Ptrs : 116
+SIZE : 4
+Offset actual data : 263
+Offset write : 175
+
+------------27
+END POS : 270
+Offset Ptrs : 120
+SIZE : 7
+175
+Offset write : 179
+Offset actual data : 270
+Offset write : 186
+
+------------28
+END POS : 274
+Offset Ptrs : 124
+SIZE : 4
+Offset actual data : 274
+Offset write : 190
+
+------------29
+END POS : 278
+Offset Ptrs : 128
+SIZE : 4
+Offset actual data : 278
+Offset write : 194
+
+
+---------READING RECORD---------
+13
+110
+4048
+Offset from origin : 1012
+Slot size : 278
+Fields : 30
+My format8
+Req format4
+Updated bitarray
+00000000000000000000000000000000
+END PTRS----------------30
+Offset ptrs : 8
+Actual data ptrs : 128
+128
+4
+------------0
+END POS : 135
+Offset Ptrs : 12
+SIZE : 7
+4
+Offset write : 8
+Offset actual data : 135
+Offset write : 15
+
+------------1
+END POS : 139
+Offset Ptrs : 16
+SIZE : 4
+Offset actual data : 139
+Offset write : 19
+
+------------2
+END POS : 143
+Offset Ptrs : 20
+SIZE : 4
+Offset actual data : 143
+Offset write : 23
+
+------------3
+END POS : 150
+Offset Ptrs : 24
+SIZE : 7
+23
+Offset write : 27
+Offset actual data : 150
+Offset write : 34
+
+------------4
+END POS : 154
+Offset Ptrs : 28
+SIZE : 4
+Offset actual data : 154
+Offset write : 38
+
+------------5
+END POS : 158
+Offset Ptrs : 32
+SIZE : 4
+Offset actual data : 158
+Offset write : 42
+
+------------6
+END POS : 165
+Offset Ptrs : 36
+SIZE : 7
+42
+Offset write : 46
+Offset actual data : 165
+Offset write : 53
+
+------------7
+END POS : 169
+Offset Ptrs : 40
+SIZE : 4
+Offset actual data : 169
+Offset write : 57
+
+------------8
+END POS : 173
+Offset Ptrs : 44
+SIZE : 4
+Offset actual data : 173
+Offset write : 61
+
+------------9
+END POS : 180
+Offset Ptrs : 48
+SIZE : 7
+61
+Offset write : 65
+Offset actual data : 180
+Offset write : 72
+
+------------10
+END POS : 184
+Offset Ptrs : 52
+SIZE : 4
+Offset actual data : 184
+Offset write : 76
+
+------------11
+END POS : 188
+Offset Ptrs : 56
+SIZE : 4
+Offset actual data : 188
+Offset write : 80
+
+------------12
+END POS : 195
+Offset Ptrs : 60
+SIZE : 7
+80
+Offset write : 84
+Offset actual data : 195
+Offset write : 91
+
+------------13
+END POS : 199
+Offset Ptrs : 64
+SIZE : 4
+Offset actual data : 199
+Offset write : 95
+
+------------14
+END POS : 203
+Offset Ptrs : 68
+SIZE : 4
+Offset actual data : 203
+Offset write : 99
+
+------------15
+END POS : 210
+Offset Ptrs : 72
+SIZE : 7
+99
+Offset write : 103
+Offset actual data : 210
+Offset write : 110
+
+------------16
+END POS : 214
+Offset Ptrs : 76
+SIZE : 4
+Offset actual data : 214
+Offset write : 114
+
+------------17
+END POS : 218
+Offset Ptrs : 80
+SIZE : 4
+Offset actual data : 218
+Offset write : 118
+
+------------18
+END POS : 225
+Offset Ptrs : 84
+SIZE : 7
+118
+Offset write : 122
+Offset actual data : 225
+Offset write : 129
+
+------------19
+END POS : 229
+Offset Ptrs : 88
+SIZE : 4
+Offset actual data : 229
+Offset write : 133
+
+------------20
+END POS : 233
+Offset Ptrs : 92
+SIZE : 4
+Offset actual data : 233
+Offset write : 137
+
+------------21
+END POS : 240
+Offset Ptrs : 96
+SIZE : 7
+137
+Offset write : 141
+Offset actual data : 240
+Offset write : 148
+
+------------22
+END POS : 244
+Offset Ptrs : 100
+SIZE : 4
+Offset actual data : 244
+Offset write : 152
+
+------------23
+END POS : 248
+Offset Ptrs : 104
+SIZE : 4
+Offset actual data : 248
+Offset write : 156
+
+------------24
+END POS : 255
+Offset Ptrs : 108
+SIZE : 7
+156
+Offset write : 160
+Offset actual data : 255
+Offset write : 167
+
+------------25
+END POS : 259
+Offset Ptrs : 112
+SIZE : 4
+Offset actual data : 259
+Offset write : 171
+
+------------26
+END POS : 263
+Offset Ptrs : 116
+SIZE : 4
+Offset actual data : 263
+Offset write : 175
+
+------------27
+END POS : 270
+Offset Ptrs : 120
+SIZE : 7
+175
+Offset write : 179
+Offset actual data : 270
+Offset write : 186
+
+------------28
+END POS : 274
+Offset Ptrs : 124
+SIZE : 4
+Offset actual data : 274
+Offset write : 190
+
+------------29
+END POS : 278
+Offset Ptrs : 128
+SIZE : 4
+Offset actual data : 278
+Offset write : 194
+
+[FAIL] Test Case 10 Failed!
+

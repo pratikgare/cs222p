@@ -1,0 +1,10 @@
+#eclipse related unwanted stuff
+
+.cproject
+.project
+.settings/
+test*
+
+#inside rbf folder
+*.o
+*.a
