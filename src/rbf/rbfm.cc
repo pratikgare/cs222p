@@ -66,7 +66,7 @@ RC insertRecordInGivenBuffer(void *pageBuffer, char* record, int recordSize, int
 	}
 
 	//Copying the record into the page buffer
-	memcpy(pageBuffer+offsetNewRecord, record, recordSize);
+	//memcpy(pageBuffer+offsetNewRecord, record, recordSize);
 
 
 	//update slot dir
