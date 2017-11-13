@@ -55,8 +55,47 @@ class IndexManager {
 };
 
 
+class IXFileHandle {
+    public:
+
+    // variables to keep counter for each operation
+    unsigned ixReadPageCounter;
+    unsigned ixWritePageCounter;
+    unsigned ixAppendPageCounter;
+
+    //added
+    FileHandle fileHandle;
+
+    // Constructor
+    IXFileHandle();
+
+    // Destructor
+    ~IXFileHandle();
+
+	// Put the current counter values of associated PF FileHandles into variables
+	RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);
+
+};
+
+
 class IX_ScanIterator {
     public:
+
+		// My functionalities
+		IXFileHandle ixfileHandle;
+		Attribute attribute;
+		void* lowKey;
+		void* highKey;
+		bool lowKeyInclusive;
+		bool highKeyInclusive;
+
+		void* nextKey;
+		short nextKeyPageNum;
+
+		RC getPosition(void* page, const void* lowKey, bool lowKeyInclusive,AttrType type, int &position);
+		RC findHitForTypeInt(RID &rid, void* key);
+		RC findHitForTypeReal(RID &rid, void* key);
+		RC findHitForTypeVarChar(RID &rid, void* key);
 
 		// Constructor
         IX_ScanIterator();
@@ -72,28 +111,5 @@ class IX_ScanIterator {
 };
 
 
-
-class IXFileHandle {
-    public:
-
-    // variables to keep counter for each operation
-    unsigned ixReadPageCounter;
-    unsigned ixWritePageCounter;
-    unsigned ixAppendPageCounter;
-
-    //added
-    //PagedFileManager pfm = PagedFileManager::instance();
-    FileHandle fileHandle;
-
-    // Constructor
-    IXFileHandle();
-
-    // Destructor
-    ~IXFileHandle();
-
-	// Put the current counter values of associated PF FileHandles into variables
-	RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);
-
-};
 
 #endif
