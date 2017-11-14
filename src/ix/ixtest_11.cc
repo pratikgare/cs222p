@@ -1,10 +1,5 @@
-#include <cstdio>
 #include <iostream>
-#include <string>
-
-#include "../rbf/pfm.h"
-#include "../rbf/rbfm.h"
-#include "../rbf/test_util.h"
+#include <cstdio>
 #include "ix.h"
 #include "ix_test_util.h"
 

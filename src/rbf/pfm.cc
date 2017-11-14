@@ -7,11 +7,11 @@
 using namespace std;
 
 //My Functions
-    int getCounterValue(FILE* file, int mode);
-    RC setCounterValue(FILE* file, int, int);
-    bool incrementCounter(FILE* file, int mode);
-    bool createHiddenPage(FILE* file);
-    bool fileExists(const string &fileName);
+int getCounterValue(FILE* file, int mode);
+RC setCounterValue(FILE* file, int, int);
+bool incrementCounter(FILE* file, int mode);
+bool createHiddenPage(FILE* file);
+bool fileExists(const string &fileName);
 
 //Encryption key - 11694 (my D.O.B. - 01/16/1994). It can be anything depending upon the user requirement.
 int encryptKey = 11694;
@@ -91,10 +91,10 @@ bool decrementCounter(FILE* file, int mode){
 
 int getCounterValue(FILE* file, int mode){
 	// The values of mode can only be: 0- EncryptionKey, 1- read counter, 2- write counter, 3-append counter
-	// 4-numberofrecords, 5-firstpointedridflag, 6-firstpointedridpagenum, 7-firstpointedridslotnum
+	// 4-numberofrecords, 5-rootNodePage
 
 	// Invalid value of mode, return error.
-	if(mode != 0 && mode != 1 && mode != 2 && mode != 3 && mode!=4)
+	if(mode != 0 && mode != 1 && mode != 2 && mode != 3 && mode!=4 && mode!=5)
 		return -1;
 
 	// Get the contents of the file into a buffer
@@ -111,17 +111,17 @@ int getCounterValue(FILE* file, int mode){
 
 RC setCounterValue(FILE* file, int mode, int val1){
 
-	if(mode != 0 && mode != 1 && mode != 2 && mode != 3 && mode!=4)
+	if(mode != 0 && mode != 1 && mode != 2 && mode != 3 && mode!=4 && mode!=5)
 			return -1;
 
-		// setting ptr to begin
-		fseek(file, mode*sizeof(unsigned), SEEK_SET);
+	// setting ptr to begin
+	fseek(file, mode*sizeof(unsigned), SEEK_SET);
 
-		// Reading hidden page data from the file.
-		fwrite(&val1, sizeof(unsigned), 1, file);
-		fflush(file);
+	// Reading hidden page data from the file.
+	fwrite(&val1, sizeof(unsigned), 1, file);
+	fflush(file);
 
-		return 0;
+	return 0;
 }
 
 bool createHiddenPage(FILE* file){
@@ -147,13 +147,19 @@ bool createHiddenPage(FILE* file){
 	memcpy(((char*)hiddenPage)+offset, &cnt, sizeof(unsigned));		// Initially setting numberofrecords value to zero. (byte 16 to byte 20 in hidden page)
 	offset += sizeof(unsigned);
 
+	int defaultVal = -1;
+
+	memcpy(((char*)hiddenPage)+offset, &defaultVal, sizeof(int));		// Initially setting pageNumOfRootNode value to zero. (byte 20 to byte 24 in hidden page)
+	offset += sizeof(unsigned);
+
+
 
 	//Writing hidden page into a file.
 	fwrite(hiddenPage, PAGE_SIZE, 1, file);
 	fflush(file);
 
 	// Free the dynamic allocated heap memory to prevent the memory leak.
-	free(hiddenPage);
+	//free(hiddenPage);
 
 	return true;
 }
@@ -202,6 +208,7 @@ RC PagedFileManager::destroyFile(const string &fileName)
 		// Error in destroying file.
 		if(remove(fileName.c_str()) != 0)
 			return -1;
+
 		return 0;
 	}
 	//if not it should fail
@@ -211,9 +218,17 @@ RC PagedFileManager::destroyFile(const string &fileName)
 
 RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
 {
-	//check if file already exists
-	if(!fileExists(fileName))
+	//
+	if(fileHandle.isOpen){
 		return -1;
+	}
+
+	//check if file already exists
+	if(!fileExists(fileName)){
+		fileHandle.handle = NULL;
+		return -1;
+	}
+
 
 	// Opening file in update binary mode(read and write)
 	FILE* file = fopen(fileName.c_str(), "rb+");
@@ -234,6 +249,7 @@ RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
 
 	// Filehandle becomes the handle for the opened file.
 	fileHandle.handle = file;
+	fileHandle.isOpen = true;
 	return 0;
 }
 
@@ -242,6 +258,7 @@ RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
 	if(fileHandle.handle){
+		fileHandle.isOpen = false;
 		fclose(fileHandle.handle);
 		return 0;
 	}
@@ -256,16 +273,13 @@ FileHandle::FileHandle()
     writePageCounter = 0;
     appendPageCounter = 0;
     numberofrecords = 0;
-
+    isOpen = false;
 }
 
 
 FileHandle::~FileHandle()
 {
-	if(handle){
-		handle = NULL;
-		delete(handle);
-	}
+
 }
 
 
@@ -357,6 +371,10 @@ RC FileHandle::decreaseCounter(int mode)
 {
 	decrementCounter(handle, mode);
 	return 0;
+}
+
+RC FileHandle::setCounter(int mode, int value){
+	return setCounterValue(handle, 5, value);
 }
 
 unsigned FileHandle::getCounter(int mode)

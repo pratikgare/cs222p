@@ -40,6 +40,7 @@ public:
     unsigned appendPageCounter;
     unsigned numberofrecords;
 
+    bool isOpen;
 
     FILE* handle;														  // c file handler
 
@@ -56,6 +57,7 @@ public:
     RC increaseCounter(int mode);
     RC decreaseCounter(int mode);
     unsigned getCounter(int mode);
+    RC setCounter(int mode, int value);
 
 }; 
 

@@ -88,6 +88,7 @@ class IX_ScanIterator {
 		void* highKey;
 		bool lowKeyInclusive;
 		bool highKeyInclusive;
+		//bool searchEnd;
 
 		void* nextKey;
 		short nextKeyPageNum;

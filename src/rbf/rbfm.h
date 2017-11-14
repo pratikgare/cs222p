@@ -56,14 +56,34 @@ The scan iterator is NOT required to be implemented for the part 1 of the projec
 
 class RBFM_ScanIterator {
 public:
-  RBFM_ScanIterator() {};
-  ~RBFM_ScanIterator() {};
+	void *value;
+	AttrType conditionAttributeType;
+
+	FileHandle fileHandle;
+	vector<Attribute> recordDescriptor;
+	string conditionAttribute;
+	CompOp compOp;
+	vector<string> attributeNames;
+	RID rid_next;
+
+	RBFM_ScanIterator(){
+		compOp = NO_OP;
+		conditionAttributeType = TypeInt;
+		value = NULL;
+		rid_next.pageNum = 0;
+		rid_next.slotNum = 0;
+	};
+	  ~RBFM_ScanIterator() {};
 
   // Never keep the results in the memory. When getNextRecord() is called, 
   // a satisfying record needs to be fetched from the file.
   // "data" follows the same format as RecordBasedFileManager::insertRecord().
-  RC getNextRecord(RID &rid, void *data) { return RBFM_EOF; };
-  RC close() { return -1; };
+  RC getNextRecord(RID &rid, void *data);
+  RC close();
+
+  bool checkForCondition(void* val_conditionAttribute, const CompOp compOp, void* value, AttrType typeattrr);
+  AttrType getAttributeType(const vector<Attribute> &recordDescriptor, const string &AttributeName);
+
 };
 
 
@@ -119,12 +139,42 @@ IMPORTANT, PLEASE READ: All methods below this comment (other than the construct
   RC scan(FileHandle &fileHandle,
       const vector<Attribute> &recordDescriptor,
       const string &conditionAttribute,
-      const CompOp compOp,                  // comparision type such as "<" and "="
+      const CompOp compOp,                  // comparison type such as "<" and "="
       const void *value,                    // used in the comparison
       const vector<string> &attributeNames, // a list of projected attributes
       RBFM_ScanIterator &rbfm_ScanIterator);
 
+  // My variables
+  	 vector<RID> pointedrids;
+  	 vector<RID> truerids;
+
 public:
+
+  // My functions
+  RC insertRecordInGivenBuffer(char *pageBuffer, char* record, int, int* slot);
+  RC createRecord(const vector<Attribute> &recordDescriptor, const void *data, char *record, int *recordSize, int* ptrs, int* actualdata);
+  RC shiftLeft(char* page_data, short int, short int, short int, short int);
+  RC shiftRight(char* page_data, short int, short int, short int, short int);
+  RC updateSlotDirectory(char* page_data, const RID &rid, int, int, short int);
+  RC createHole(char* page_data, short int, short int, short int, short int, short int);
+  int getHighestslotOffsetLocation(char* pageBuffer);
+  int deletedSlotLocation(char* pageBuffer);
+  RC getRecordInMyFormat(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, RID& rid, void *data);
+  RC setConditionAttributeType(const vector<Attribute> &recordDescriptor, const string &conditionAttribute, RBFM_ScanIterator &rbfm_ScanIterator);
+  RC setValueForCondition(const void *value, RBFM_ScanIterator &rbfm_ScanIterator);
+
+  RC createHashMapPointedrids(RID rid);
+  bool checkridsInHashMap(RID rid);
+  RC clearHashMap();
+
+  RC createTrueHashMap();
+  bool checkridsInTrueHashMap(RID rid);
+
+  RC insertForwardRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid);
+
+
+
+
 
 protected:
   RecordBasedFileManager();
