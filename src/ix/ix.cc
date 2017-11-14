@@ -677,11 +677,21 @@ RC IndexManager::insertEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 			//update the metadata i.e decrement the freespace
 
 		}
+
+
 	}
 	else{
 
 	}
-
+//
+//	void* page = malloc(PAGE_SIZE);
+//
+//	ixfileHandle.fileHandle.readPage(0, page);
+//
+//	int temp = 0;
+//	memcpy(&temp, (char*)page+METADATA, sizeof(int));
+//	cout<<"---KEY---"<<temp<<endl;
+//
     return 0;
 }
 
@@ -738,6 +748,73 @@ RC setKeys(const void *key, AttrType type, void* buffer){
 	return 0;
 }
 
+RC searchLeftmostLeafNode(IXFileHandle &ixfileHandle, void *lowKey, AttrType type){
+
+	short rootPageNum = (short)ixfileHandle.fileHandle.getCounter(5);
+
+	if(rootPageNum == NO_ROOT){
+		if(ixfileHandle.fileHandle.getNumberOfPages() == 0){
+			return -1;
+		}
+		else{
+			//get entryCount
+			void* page = malloc(PAGE_SIZE);
+			ixfileHandle.fileHandle.readPage(0, page);
+
+			//test
+			int temp = 0;
+			memcpy(&temp, (char*)page+METADATA, sizeof(int));
+			cout<<"---KEY---"<<temp<<endl;
+			//test end
+
+			int offset = METADATA;
+
+			switch(type){
+				//handling int and real
+				case TypeInt:{
+					//lowKey = malloc(sizeof(int));
+					memcpy(lowKey, (char*)page + offset, sizeof(int));
+					break;
+				}
+
+				case TypeReal:{
+					//lowKey = malloc(sizeof(int));
+					memcpy(lowKey, (char*)page+offset, sizeof(float));
+					break;
+				}
+				//handling varchar
+				case TypeVarChar:{
+					int Varlength = 0;
+					memcpy(&Varlength, (char*)page+offset, sizeof(int));
+					//lowKey = malloc(sizeof(int) + Varlength);
+
+					memcpy(lowKey, (char*)page+offset, sizeof(int) + Varlength);
+
+					break;
+				}
+			}
+		}
+	}
+	else{
+
+	}
+
+	return 0;
+}
+
+int getlastEntryPosition(void* page){
+	int offset = METADATA;
+
+	short entryCount = 0;
+	getEntryCount(page, entryCount);
+
+	int varlength = 0;
+	for(int i=0; i<entryCount-1; i++){
+		memcpy(&varlength, (char*)page + offset, sizeof(int));
+		offset = (sizeof(int) + varlength) + sizeof(RID);
+	}
+	return offset;
+}
 
 RC searchRightmostLeafNode(IXFileHandle &ixfileHandle, void *highKey, AttrType type){
 
@@ -758,26 +835,30 @@ RC searchRightmostLeafNode(IXFileHandle &ixfileHandle, void *highKey, AttrType t
 			int offset = METADATA;
 
 			switch(type){
-			//handling int and real
+				//handling int and real
 				case TypeInt:{
 					offset += (entryCount-1)*(sizeof(int)+sizeof(RID));
-
-					memcpy(highKey, (char*)page+offset, sizeof(int));
-
+					//highKey = malloc(sizeof(int));
+					memcpy(highKey, (char*)page + offset, sizeof(int));
 					break;
 				}
 
 				case TypeReal:{
-					offset += (entryCount-1)*(sizeof(float)+sizeof(RID));
-
+					offset += (entryCount-1)*(sizeof(int)+sizeof(RID));
+					//highKey = malloc(sizeof(int));
 					memcpy(highKey, (char*)page+offset, sizeof(float));
-
 					break;
 				}
-
 				//handling varchar
 				case TypeVarChar:{
+					int Varlength = 0;
+					int lastEntryoffset = getlastEntryPosition(page);
 
+					int varlength = 0;
+					memcpy(&varlength, (char*)page+lastEntryoffset, sizeof(int));
+
+					//highKey = malloc(sizeof(int)+varlength);
+					memcpy(highKey, (char*)page+lastEntryoffset, sizeof(int) + Varlength);
 
 					break;
 				}
@@ -800,12 +881,14 @@ RC IndexManager::scan(IXFileHandle &ixfileHandle,
         IX_ScanIterator &ix_ScanIterator)
 {
 
-	ix_ScanIterator.ixfileHandle = ixfileHandle;
+	ix_ScanIterator.ixfileHandle = &ixfileHandle;
 //	ix_ScanIterator.attribute.length = attribute.length;
 //	ix_ScanIterator.attribute.name = attribute.name;
 //	ix_ScanIterator.attribute.type = (AttrType)attribute.type;
-	ix_ScanIterator.attribute = attribute;
+	ix_ScanIterator.attribute = &attribute;
 
+
+	cout<<"Inside scan"<<endl;
 
 	if(lowKey){
 		setKeys(lowKey, attribute.type, ix_ScanIterator.lowKey);
@@ -815,6 +898,11 @@ RC IndexManager::scan(IXFileHandle &ixfileHandle,
 	else{
 		ix_ScanIterator.lowKeyInclusive = true;
 		ix_ScanIterator.nextKeyPageNum = 0;
+
+		ix_ScanIterator.lowKey = malloc(PAGE_SIZE);
+		if(searchLeftmostLeafNode(ixfileHandle, ix_ScanIterator.lowKey, attribute.type)==-1){
+			return -1;
+		}
 	}
 
 	if(highKey){
@@ -824,13 +912,20 @@ RC IndexManager::scan(IXFileHandle &ixfileHandle,
 	}
 	else{
 		ix_ScanIterator.highKeyInclusive = true;
+
+		ix_ScanIterator.highKey = malloc(PAGE_SIZE);
 		if(searchRightmostLeafNode(ixfileHandle, ix_ScanIterator.highKey, attribute.type)==-1){
 			return -1;
 		}
 	}
 
 
+	int key = 0;
+	memcpy(&key, ix_ScanIterator.lowKey, sizeof(int));
+	cout<<"Low: "<<key<<endl;
 
+	memcpy(&key, ix_ScanIterator.highKey, sizeof(int));
+	cout<<"High: " <<key<<endl;
 
 
 
@@ -1139,15 +1234,13 @@ void IndexManager::printBtree(IXFileHandle &ixfileHandle, const Attribute &attri
 
 
 
-
-
 IX_ScanIterator::IX_ScanIterator()
 {
-	lowKey = NULL;
-	highKey = NULL;
+//	lowKey = NULL;
+//	highKey = NULL;
 	lowKeyInclusive = false;
 	highKeyInclusive = false;
-	nextKey = NULL;
+//	nextKey = NULL;
 	nextKeyPageNum = 0;
 }
 
@@ -1299,7 +1392,7 @@ RC IX_ScanIterator::findHitForTypeInt(RID &rid, void* key){
 	while(true){
 		//reading lowKeyPage
 		void* page = malloc(PAGE_SIZE);
-		ixfileHandle.fileHandle.readPage(nextKeyPageNum, page);
+		ixfileHandle->fileHandle.readPage(nextKeyPageNum, page);
 
 		//get the position of lowKey i.e start of matching entries
 		int position = 0;
@@ -1346,7 +1439,7 @@ RC IX_ScanIterator::findHitForTypeInt(RID &rid, void* key){
 						//read the first key of this page
 						else{
 							void* rightPage = malloc(PAGE_SIZE);
-							ixfileHandle.fileHandle.readPage(rightPageNum, rightPage);
+							ixfileHandle->fileHandle.readPage(rightPageNum, rightPage);
 
 							memcpy(nextKey, (char*)rightPage+METADATA, sizeof(int));
 							nextKeyPageNum = rightPageNum;
@@ -1389,7 +1482,7 @@ RC IX_ScanIterator::findHitForTypeInt(RID &rid, void* key){
 						//read the first key of this page
 						else{
 							void* rightPage = malloc(PAGE_SIZE);
-							ixfileHandle.fileHandle.readPage(rightPageNum, rightPage);
+							ixfileHandle->fileHandle.readPage(rightPageNum, rightPage);
 
 							memcpy(nextKey, (char*)rightPage+METADATA, sizeof(int));
 							nextKeyPageNum = rightPageNum;
@@ -1422,7 +1515,7 @@ RC IX_ScanIterator::findHitForTypeInt(RID &rid, void* key){
 RC IX_ScanIterator::findHitForTypeReal(RID &rid, void* key){
 
 	void* page = malloc(PAGE_SIZE);
-	ixfileHandle.fileHandle.readPage(nextKeyPageNum, page);
+	ixfileHandle->fileHandle.readPage(nextKeyPageNum, page);
 
 	int position = 0;
 
@@ -1438,7 +1531,7 @@ RC IX_ScanIterator::findHitForTypeReal(RID &rid, void* key){
 
 RC IX_ScanIterator::findHitForTypeVarChar(RID &rid, void* key){
 	void* page = malloc(PAGE_SIZE);
-	ixfileHandle.fileHandle.readPage(nextKeyPageNum, page);
+	ixfileHandle->fileHandle.readPage(nextKeyPageNum, page);
 
 	int position = 0;
 
@@ -1457,7 +1550,7 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 		nextKey = lowKey;
 	}
 
-	switch(attribute.type){
+	switch(attribute->type){
 		case TypeInt:{
 			if(findHitForTypeInt(rid, key) == 0){
 				return 0;
