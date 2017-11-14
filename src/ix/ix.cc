@@ -842,9 +842,23 @@ RC IndexManager::deleteEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 	}
 
 	//update metadata
+
+	//decrement Entry Count
 	decrementEntryCount(page);
+
+	//Check if page has entries after deletion
+	//if not update the deleted flag
+	short noOfEntries = 0;
+	getEntryCount(page, noOfEntries);
+	if(noOfEntries == 0){
+		//setting the deleted flag for the page
+		setDeletedFlag(page, 1);
+	}
+
+	//update freespace
 	incrementFreeSpace(page, entryKeyLength+sizeof(RID));
 
+	//write the changes to the page
 	writeIntoPage(ixfileHandle, page, pageNum);
 
     return 0;
@@ -1034,11 +1048,16 @@ RC IndexManager::scan(IXFileHandle &ixfileHandle,
 	if(lowKey){
 		setKeys(lowKey, attribute.type, ix_ScanIterator.lowKey);
 		ix_ScanIterator.lowKeyInclusive = lowKeyInclusive;
-		//TODO:ix_ScanIterator.nextKeyPageNum = traverse(lowKey, lowKeyInclusive);
 	}
 	else{
 		ix_ScanIterator.lowKeyInclusive = true;
+
+
+		//TODO: if page 0 is empty
+
 		ix_ScanIterator.nextKeyPageNum = 0;
+
+
 
 		if(searchLeftmostLeafNode(ixfileHandle, ix_ScanIterator.lowKey, attribute.type)==-1){
 			return -1;
