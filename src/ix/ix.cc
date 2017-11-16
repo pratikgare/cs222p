@@ -57,9 +57,6 @@ RC IndexManager::closeFile(IXFileHandle &ixfileHandle)
 	return pfm->closeFile(ixfileHandle.fileHandle);
 }
 
-
-
-
 // Added functions
 
 RC setDeletedFlag(void* data, short value){
@@ -206,14 +203,14 @@ RC decrementFreeSpace(void* data, int value){
 	return 0;
 }
 
-RC setRightPagePointer(void* data, short value){
+RC setLeftPageNum(void* data, short value){
 	// 16-18 bytes
 	int offset = 16;
 	memcpy((char*)data + offset, &value, 2);
 	return 0;
 }
 
-RC getRightPagePointer(void* data, short &value){
+RC getLeftPageNum(void* data, short &value){
 	// 16-18 bytes
 	int offset = 16;
 	memcpy(&value, (char*)data + offset, 2);
@@ -234,10 +231,6 @@ RC getOwnPageNumber(void* data, short &value){
 	return 0;
 }
 
-
-
-
-
 // Creating page meta data design - till now 30 bytes
 RC initializePage(IXFileHandle &ixfileHandle){
 	/*
@@ -249,10 +242,10 @@ RC initializePage(IXFileHandle &ixfileHandle){
 	 bytes: 10-12: pointer to right sibling (unsigned page num)
 	 bytes: 12-14: pointer to overflow pages (unsigned page num)
 	 bytes: 14-16: free space in the given page
-	 bytes: 16-18: store pageNum as the right ptr for non-leaf nodes
+	 bytes: 16-18: store pageNum as the left ptr for non-leaf nodes
 	 bytes: 18-20: Own page's pagenumber
 	 bytes: 20-30: buffer (unused)
-	 */
+	*/
 	short defaultValue = -1;
 
 	void* data = malloc(PAGE_SIZE);
@@ -292,10 +285,10 @@ RC initializePage(IXFileHandle &ixfileHandle){
 	//cout << "freespace : " << retVal << endl;
 
 	//set right page ptr for non-leaf pages
-	setRightPagePointer(data, defaultValue);
+	setLeftPageNum(data, defaultValue);
 
 	//unit test case to test right page ptr
-	getRightPagePointer(data, retVal);
+	getLeftPageNum(data, retVal);
 	//cout << "right page ptr : " << retVal << endl;
 
 	ixfileHandle.fileHandle.appendPage(data);
@@ -362,61 +355,52 @@ RC prepareLeafEntry(const void* indexKey, void* indexEntry, AttrType type, const
 }
 
 //Prepare non-leaf entry
-// Has left page pointer and a key
-RC prepareNonLeafEntry(const short leftChildPageNum, const void* indexKey, void* indexEntry, AttrType type, const RID &rid, short &entrySize){
+// Has a key a right page pointer
+RC prepareNonLeafEntry(const short rightChildPageNum, const void* indexKey, void* indexEntry, AttrType type, short &entrySize){
 
 	switch(type){
 		case TypeInt:{
-			indexEntry = malloc(sizeof(short) + sizeof(int) + sizeof(RID));
-
 			int offset = 0;
 
-			memcpy((char*)indexEntry+offset, &leftChildPageNum, sizeof(short));
-			offset += sizeof(short);
-
+			//key
 			memcpy((char*)indexEntry+offset, indexKey, sizeof(int));
 			offset += sizeof(int);
 
-			memcpy((char*)indexEntry+offset, &rid, sizeof(RID));
-			offset += sizeof(RID);
+			//right pagenum
+			memcpy((char*)indexEntry+offset, &rightChildPageNum, sizeof(short));
+			offset += sizeof(short);
 
 			entrySize = offset;
 			break;
 		}
 		case TypeReal:{
-			indexEntry = malloc(sizeof(short) + sizeof(int) + sizeof(RID));
-
 			int offset = 0;
 
-			memcpy((char*)indexEntry+offset, &leftChildPageNum, sizeof(short));
+			//key
+			memcpy((char*)indexEntry+offset, indexKey, sizeof(float));
+			offset += sizeof(float);
+
+			//right pagenum
+			memcpy((char*)indexEntry+offset, &rightChildPageNum, sizeof(short));
 			offset += sizeof(short);
-
-			memcpy((char*)indexEntry+offset, indexKey, sizeof(int));
-			offset += sizeof(int);
-
-			memcpy((char*)indexEntry+offset, &rid, sizeof(RID));
-			offset += sizeof(RID);
 
 			entrySize = offset;
 			break;
 		}
 		case TypeVarChar:{
-
 			int varCharSize = 0;
 
 			memcpy(&varCharSize, indexKey, sizeof(int));
 
-			indexEntry = malloc(sizeof(short) + sizeof(int) + varCharSize + sizeof(RID));
-
 			int offset = 0;
-			memcpy((char*)indexEntry+offset, &leftChildPageNum, sizeof(short));
-			offset += sizeof(short);
 
+			//key
 			memcpy(indexEntry, indexKey, sizeof(int) + varCharSize);
 			offset += (sizeof(int) + varCharSize);
 
-			memcpy((char*)indexEntry+offset, &rid, sizeof(RID));
-			offset += sizeof(RID);
+			//right pagenum
+			memcpy((char*)indexEntry+offset, &rightChildPageNum, sizeof(short));
+			offset += sizeof(short);
 
 			entrySize = offset;
 			break;
@@ -426,8 +410,74 @@ RC prepareNonLeafEntry(const short leftChildPageNum, const void* indexKey, void*
 	return 0;
 }
 
+RC extractKey(const void* page, int offset, AttrType type, void* key, int &keyLength){
+
+	switch(type){
+		case TypeInt:{
+			keyLength = sizeof(int);
+			memcpy(key, (char*)page+offset, keyLength);
+			break;
+		}
+
+		case TypeReal:{
+			keyLength = sizeof(float);
+			memcpy(key, (char*)page+offset, keyLength);
+			break;
+		}
+
+		case TypeVarChar:{
+			memcpy(&keyLength, (char*)page+offset, sizeof(int));
+			memcpy(key, (char*)page+offset, sizeof(int)+keyLength);
+			keyLength += sizeof(int);
+			break;
+		}
+	}
+
+	return 0;
+}
+
+// compare key function
+RC compareKey(const void* key1, const void* key2, AttrType type){
+
+	int status = 0;
+
+	switch(type){
+		case TypeInt:{
+			status = memcmp(key1, key2, sizeof(int));
+			break;
+		}
+
+		case TypeReal:{
+			status = memcmp(key1, key2, sizeof(float));
+			break;
+		}
+
+		case TypeVarChar:{
+			int keyLength = 0;
+			memcpy(&keyLength, key1, sizeof(int));
+
+			char* varcharkey1 = (char*) malloc(keyLength+1);
+			memcpy(varcharkey1, (char*)key1+sizeof(int), keyLength);
+			varcharkey1[keyLength] = '\0';
+
+			memcpy(&keyLength, key2, sizeof(int));
+			char* varcharkey2 = (char*) malloc(keyLength+1);
+			memcpy(varcharkey2, (char*)key2+sizeof(int), keyLength);
+			varcharkey2[keyLength] = '\0';
+
+			status = strcmp(varcharkey1, varcharkey2);
+
+			break;
+		}
+
+	}
+
+	return status;
+}
+
 //Should return the place where it should insert
-RC getOffset(void* page, const void* index_key, AttrType type, int &offsetToBeInserted){
+//TODO: irrespective of page type which will insert/give position to be inserted
+RC getOffset(void* page, const void* searchKey, AttrType type, int &offsetToBeInserted){
 
 	offsetToBeInserted = METADATA;
 
@@ -440,163 +490,34 @@ RC getOffset(void* page, const void* index_key, AttrType type, int &offsetToBeIn
 
 
 	bool isLeaf = (leaf==LEAF_FLAG) ? true : false;
-	//cout<< "IS leaf : " << isLeaf<<endl;
 
-	switch(type){
-		case TypeInt:{
+	void* key = malloc(PAGE_SIZE);
+	int keyLength = 0;
+	//search for the correct position
+	for(int i=0; i<entryCount; i++){
+		extractKey(page, offsetToBeInserted, type, key, keyLength);
 
-			//read the index key from index entry
-			int searchKey = 0;
-			memcpy(&searchKey, index_key, sizeof(int));
-
-			//offset initialized to METADATA
-			//cout << "Initial offset : " << offsetToBeInserted << endl;
-
-
-			int key = 0;
-
-			if(isLeaf){
-				//leaf - 12 bytes
-				// key + rid
-				int leafPageEntrySize = sizeof(int) + (sizeof(RID));
-
-				//search for the correct position
-				for(int i=0; i<entryCount; i++){
-					memcpy(&key, (char*)page+offsetToBeInserted, sizeof(int));
-
-					if(key >= searchKey){
-						break;
-					}
-					offsetToBeInserted += leafPageEntrySize;
-				}
-			}
-			else{
-				//non-leaf - 6 bytes
-				int nonLeafPageEntrySize = sizeof(short) + sizeof(int);					// left child + key
-
-				//search for the correct position
-				for(int i=0; i<entryCount; i++){
-					memcpy(&key, (char*)page+offsetToBeInserted+sizeof(short), sizeof(int));
-
-					if(key >= searchKey){
-						break;
-					}
-					offsetToBeInserted += nonLeafPageEntrySize;
-				}
-			}
-
+		if(compareKey(key, searchKey, type) >= 0){
 			break;
 		}
 
-		case TypeReal:{
-
-			//read the index key from index entry
-			float searchKey = 0.0f;
-			memcpy(&searchKey, index_key, sizeof(float));
-
-			//offset initialized to METADATA
-			//cout << offsetToBeInserted << endl;
-
-
-			float key = 0.0f;
-
+		if(keyLength == 4){
 			if(isLeaf){
-				//leaf - 12 bytes
-				// key + rid
-				int leafPageEntrySize = sizeof(float) + (sizeof(RID));
-
-				//search for the correct position
-				for(int i=0; i<entryCount; i++){
-					memcpy(&key, (char*)page+offsetToBeInserted, sizeof(float));
-
-					if(key >= searchKey){
-						break;
-					}
-					offsetToBeInserted += leafPageEntrySize;
-				}
+				offsetToBeInserted += keyLength + sizeof(RID);
 			}
 			else{
-				//non-leaf - 6 bytes
-				// left child + key
-				int nonLeafPageEntrySize = sizeof(short) + sizeof(float);
-
-				//search for the correct position
-				for(int i=0; i<entryCount; i++){
-					memcpy(&key, (char*)page+offsetToBeInserted+sizeof(short), sizeof(float));
-
-					if(key >= searchKey){
-						break;
-					}
-					offsetToBeInserted += nonLeafPageEntrySize;
-				}
+				offsetToBeInserted += keyLength + sizeof(short);
 			}
-
-			break;
 		}
-
-		case TypeVarChar:{
-
-			//read the index key from index entry
-			int searchKeyLength = 0;
-			memcpy(&searchKeyLength, index_key, sizeof(int));
-
-			char* searchKey = (char*) malloc(searchKeyLength+1);
-			memcpy(searchKey, (char*)index_key+sizeof(int), searchKeyLength);
-			searchKey[searchKeyLength] = '\0';
-
-			//offset initialized to METADATA
-			//cout << offsetToBeInserted << endl;
-
-
+		else{
 			if(isLeaf){
-				//variable length Leaf Page
-
-				for(int i=0; i<entryCount; i++){
-
-					// key length extraction from the entry
-					int keyLength = 0;
-					memcpy(&keyLength, (char*)page+offsetToBeInserted, sizeof(int));
-
-					// Varcharkey + rid
-					int leafPageEntrySize = sizeof(int) + keyLength + sizeof(RID);
-
-					// key extraction from the entry
-					char* key = (char*) malloc(keyLength+1);
-					memcpy(key, (char*)page+offsetToBeInserted+sizeof(int), keyLength);
-					key[keyLength] = '\0';
-
-					//compare
-					if(strcmp(key,searchKey) >= 0){
-						break;
-					}
-
-					//increase offset
-					offsetToBeInserted += leafPageEntrySize;
-				}
+				offsetToBeInserted += keyLength + sizeof(RID);
 			}
 			else{
-				//variable length Non-Leaf Page
-
-				for(int i=0; i<entryCount; i++){
-
-					int keyLength = 0;
-					memcpy(&keyLength, (char*)page+offsetToBeInserted+sizeof(short), sizeof(int));
-
-					char* key = (char*) malloc(keyLength+1);
-					memcpy(key, (char*)page + offsetToBeInserted + sizeof(short) + sizeof(int), keyLength);
-					key[keyLength] = '\0';
-
-					// left child + Varcharkey
-					int nonLeafPageEntrySize = sizeof(short) + sizeof(int) + keyLength;
-
-					if(strcmp(key,searchKey) >= 0){
-						break;
-					}
-					offsetToBeInserted += nonLeafPageEntrySize;
-				}
+				offsetToBeInserted += keyLength + sizeof(short);
 			}
-			break;
 		}
+
 	}
 
 	return 0;
@@ -658,6 +579,38 @@ RC writeIntoPage(IXFileHandle &ixfileHandle, void* page_data, short pageNumber){
 	return 0;
 }
 
+RC insertEntryIntoGivenPage(void* page_data, const void* entry, const int entrySize, int offsetToBeInserted){
+
+	//add entry in a page iff there is space
+	short freeSpace = 0;
+	getFreeSpace(page_data, freeSpace);
+	if(freeSpace >= entrySize){
+		//write into buffer - shift right to create space and insert entry in sorted location
+		writeIntoPageBuffer(page_data, entry, entrySize, offsetToBeInserted);
+	}
+	else{
+
+		//split
+
+
+		//write into a leaf node
+
+
+
+		//update the metadata i.e decrement the freespace
+
+
+		//write into a non-leaf node = ROOT CREATION
+		//replace the root pointer in the hidden page - call set with mode 5
+
+
+		//update the metadata i.e decrement the freespace
+
+	}
+
+	return 0;
+}
+
 RC IndexManager::insertEntry(IXFileHandle &ixfileHandle, const Attribute &attribute, const void *key, const RID &rid)
 {
 	short rootPageNum = (short)ixfileHandle.fileHandle.getCounter(5);
@@ -666,6 +619,7 @@ RC IndexManager::insertEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 	if(rootPageNum == NO_ROOT){
 		// Create your page meta data - till now 30 bytes
 		initializePage(ixfileHandle);
+
 		void* page_data = malloc(PAGE_SIZE);
 		ixfileHandle.fileHandle.readPage(0, page_data);
 
@@ -675,58 +629,29 @@ RC IndexManager::insertEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 
 		prepareLeafEntry(key, entry, attribute.type, rid, entrySize);
 
-		//add entry in a page iff there is space
-		short freeSpace = 0;
-		getFreeSpace(page_data, freeSpace);
-		if(freeSpace >= entrySize){
+		//offsetToBeInserted shld be logically 0 for getOffset function
+		int offsetToBeInserted = METADATA;
 
-			//offsetToBeInserted shld be logically 0 for getOffset function
-			int offsetToBeInserted = METADATA;
+		//insertion sort
+		getOffset(page_data, key, attribute.type, offsetToBeInserted);
+		//cout << "Returned offset to be inserted : " << offsetToBeInserted << endl;
 
-			//insertion sort
-			getOffset(page_data, key, attribute.type, offsetToBeInserted);
-			//cout << "Returned offset to be inserted : " << offsetToBeInserted << endl;
+		insertEntryIntoGivenPage(page_data, entry, entrySize, offsetToBeInserted);
 
-			//write into buffer - shift right to create space and insert entry in sorted location
+		// Extract own page Number
+		short pageNumber = 0;
+		getOwnPageNumber(page_data, pageNumber);
 
-			writeIntoPageBuffer(page_data, entry, entrySize, offsetToBeInserted);
+		//write into file
+		writeIntoPage(ixfileHandle, page_data, pageNumber);
 
-			// Extract own page Number
-			short pageNumber = 0;
-			getOwnPageNumber(page_data, pageNumber);
-
-
-			//write into file
-			writeIntoPage(ixfileHandle, page_data, pageNumber);
-
-
-			//updating the root page number
-			ixfileHandle.fileHandle.setCounter(5, pageNumber);
-
-		}
-		else{
-
-			//split
-
-
-			//write into a leaf node
-
-
-
-			//update the metadata i.e decrement the freespace
-
-
-			//write into a non-leaf node = ROOT CREATION
-			//replace the root pointer in the hidden page - call set with mode 5
-
-
-			//update the metadata i.e decrement the freespace
-
-		}
-
+		//updating the root page number
+		ixfileHandle.fileHandle.setCounter(5, pageNumber);
 
 	}
 	else{
+		//traverse logic to the desired location
+
 
 	}
 //
@@ -753,32 +678,6 @@ short traverse(const void* searchKey, bool searchKeyInclusive, const int rootPag
 	//else ROOT
 
 	return pageNum;
-}
-
-RC extractKey(const void* page, int offset, AttrType type, void* key, int &keyLength){
-
-	switch(type){
-		case TypeInt:{
-			keyLength = sizeof(int);
-			memcpy(key, (char*)page+offset, keyLength);
-			break;
-		}
-
-		case TypeReal:{
-			keyLength = sizeof(float);
-			memcpy(key, (char*)page+offset, keyLength);
-			break;
-		}
-
-		case TypeVarChar:{
-			memcpy(&keyLength, (char*)page+offset, sizeof(int));
-			memcpy(key, (char*)page+offset, sizeof(int)+keyLength);
-			keyLength += sizeof(int);
-			break;
-		}
-	}
-
-	return 0;
 }
 
 RC shiftLeft(void* page, const int offset, const int shiftLength){
@@ -865,8 +764,6 @@ RC IndexManager::deleteEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 }
 
 RC setKeys(const void *key, AttrType type, void* buffer){
-
-
 
 	switch(type){
 
@@ -1195,154 +1092,7 @@ RC printPageEntries(void* page, AttrType type){
 	}
 
 	return 0;
-/*
-	switch(type){
-		case TypeInt:{
 
-			//read the index key from index entry
-			int searchKey = 0;
-			memcpy(&searchKey, index_key, sizeof(int));
-
-			//offset initialized to METADATA
-			//cout << "Initial offset : " << offsetToBeInserted << endl;
-
-
-			int key = 0;
-
-			if(isLeaf){
-
-			}
-			else{
-				//non-leaf - 6 bytes
-				int nonLeafPageEntrySize = sizeof(short) + sizeof(int);					// left child + key
-
-				//search for the correct position
-				for(int i=0; i<entryCount; i++){
-					memcpy(&key, (char*)page+offsetToBeInserted+sizeof(short), sizeof(int));
-
-					if(key >= searchKey){
-						break;
-					}
-					offsetToBeInserted += nonLeafPageEntrySize;
-				}
-			}
-
-			break;
-		}
-
-		case TypeReal:{
-
-			//read the index key from index entry
-			float searchKey = 0.0f;
-			memcpy(&searchKey, index_key, sizeof(float));
-
-			//offset initialized to METADATA
-			//cout << offsetToBeInserted << endl;
-
-
-			float key = 0.0f;
-
-			if(isLeaf){
-				//leaf - 12 bytes
-				// key + rid
-				int leafPageEntrySize = sizeof(float) + (sizeof(RID));
-
-				//search for the correct position
-				for(int i=0; i<entryCount; i++){
-					memcpy(&key, (char*)page+offsetToBeInserted, sizeof(float));
-
-					if(key >= searchKey){
-						break;
-					}
-					offsetToBeInserted += leafPageEntrySize;
-				}
-			}
-			else{
-				//non-leaf - 6 bytes
-				// left child + key
-				int nonLeafPageEntrySize = sizeof(short) + sizeof(float);
-
-				//search for the correct position
-				for(int i=0; i<entryCount; i++){
-					memcpy(&key, (char*)page+offsetToBeInserted+sizeof(short), sizeof(float));
-
-					if(key >= searchKey){
-						break;
-					}
-					offsetToBeInserted += nonLeafPageEntrySize;
-				}
-			}
-
-			break;
-		}
-
-		case TypeVarChar:{
-
-			//read the index key from index entry
-			int searchKeyLength = 0;
-			memcpy(&searchKeyLength, index_key, sizeof(int));
-
-			char* searchKey = (char*) malloc(searchKeyLength+1);
-			memcpy(searchKey, (char*)index_key+sizeof(int), searchKeyLength);
-			searchKey[searchKeyLength] = '\0';
-
-			//offset initialized to METADATA
-			cout << offsetToBeInserted << endl;
-
-
-			if(isLeaf){
-				//variable length Leaf Page
-
-				for(int i=0; i<entryCount; i++){
-
-					// key length extraction from the entry
-					int keyLength = 0;
-					memcpy(&keyLength, (char*)page+offsetToBeInserted, sizeof(int));
-
-					// Varcharkey + rid
-					int leafPageEntrySize = sizeof(int) + keyLength + sizeof(RID);
-
-					// key extraction from the entry
-					char* key = (char*) malloc(keyLength+1);
-					memcpy(key, (char*)page+offsetToBeInserted+sizeof(int), keyLength);
-					key[keyLength] = '\0';
-
-					//compare
-					if(strcmp(key,searchKey) >= 0){
-						break;
-					}
-
-					//increase offset
-					offsetToBeInserted += leafPageEntrySize;
-				}
-			}
-			else{
-				//variable length Non-Leaf Page
-
-				for(int i=0; i<entryCount; i++){
-
-					int keyLength = 0;
-					memcpy(&keyLength, (char*)page+offsetToBeInserted+sizeof(short), sizeof(int));
-
-					char* key = (char*) malloc(keyLength+1);
-					memcpy(key, (char*)page + offsetToBeInserted + sizeof(short) + sizeof(int), keyLength);
-					key[keyLength] = '\0';
-
-					// left child + Varcharkey
-					int nonLeafPageEntrySize = sizeof(short) + sizeof(int) + keyLength;
-
-					if(strcmp(key,searchKey) >= 0){
-						break;
-					}
-					offsetToBeInserted += nonLeafPageEntrySize;
-				}
-			}
-			break;
-		}
-	}
-
-	return 0;
-	*/
 }
 
 void IndexManager::printBtree(IXFileHandle &ixfileHandle, const Attribute &attribute) const {
@@ -1385,9 +1135,6 @@ void IndexManager::printBtree(IXFileHandle &ixfileHandle, const Attribute &attri
 
 }
 
-
-
-
 IX_ScanIterator::IX_ScanIterator()
 {
 //	lowKey = NULL;
@@ -1402,7 +1149,6 @@ IX_ScanIterator::~IX_ScanIterator()
 {
 }
 
-
 RC IX_ScanIterator::getPosition(void* page, const void* nextkey, bool lowKeyInclusive, AttrType type, int &position){
 
 	//get number of index entries
@@ -1413,129 +1159,27 @@ RC IX_ScanIterator::getPosition(void* page, const void* nextkey, bool lowKeyIncl
 
 	int found = -1;
 
-	switch(type){
-		case TypeInt:{
+	void* key = malloc(PAGE_SIZE);
+	int keyLength = 0;
+	//search for the correct position
+	for(int i=0; i<entryCount; i++){
+		extractKey(page, position, type, key, keyLength);
 
-			//read the index key from index entry
-			int searchKey = 0;
-			memcpy(&searchKey, nextkey, sizeof(int));
-
-			int key = 0;
-
-
-			//leaf - 12 bytes
-			// key + rid
-			int leafPageEntrySize = sizeof(int) + (sizeof(RID));
-
-			//search for the correct position
-			for(int i=0; i<entryCount; i++){
-				memcpy(&key, (char*)page+position, sizeof(int));
-
-				if(lowKeyInclusive){
-					if(key >= searchKey){
-						found = 0;
-						break;
-					}
-				}
-				else{
-					if(key > searchKey){
-						found = 0;
-						break;
-					}
-				}
-
-				position += leafPageEntrySize;
+		if(lowKeyInclusive){
+			if(compareKey(key, nextkey, type) >= 0){
+				found = 0;
+				break;
 			}
-
-
-			break;
+		}
+		else{
+			if(compareKey(key, nextkey, type) > 0){
+				found = 0;
+				break;
+			}
 		}
 
-		case TypeReal:{
+		position += keyLength + sizeof(RID);
 
-			//read the index key from index entry
-			float searchKey = 0.0f;
-			memcpy(&searchKey, nextkey, sizeof(float));
-
-			float key = 0.0f;
-
-			//leaf - 12 bytes
-			// key + rid
-			int leafPageEntrySize = sizeof(float) + (sizeof(RID));
-
-			//search for the correct position
-			for(int i=0; i<entryCount; i++){
-				memcpy(&key, (char*)page+position, sizeof(float));
-
-				if(lowKeyInclusive){
-					if(key >= searchKey){
-						found = 0;
-						break;
-					}
-				}
-				else{
-					if(key > searchKey){
-						found = 0;
-						break;
-					}
-				}
-
-				position += leafPageEntrySize;
-			}
-
-			break;
-		}
-
-		case TypeVarChar:{
-
-			//read the index key from index entry
-			int searchKeyLength = 0;
-			memcpy(&searchKeyLength, nextkey, sizeof(int));
-
-			char* searchKey = (char*) malloc(searchKeyLength+1);
-			memcpy(searchKey, (char*)nextkey+sizeof(int), searchKeyLength);
-			searchKey[searchKeyLength] = '\0';
-
-//			//offset initialized to METADATA
-//			cout << offsetToBeInserted << endl;
-
-
-			//variable length Leaf Page
-
-			for(int i=0; i<entryCount; i++){
-
-				// key length extraction from the entry
-				int keyLength = 0;
-				memcpy(&keyLength, (char*)page+position, sizeof(int));
-
-				// Varcharkey + rid
-				int leafPageEntrySize = sizeof(int) + keyLength + sizeof(RID);
-
-				// key extraction from the entry
-				char* key = (char*) malloc(keyLength+1);
-				memcpy(key, (char*)page+position+sizeof(int), keyLength);
-				key[keyLength] = '\0';
-
-				//compare
-				if(lowKeyInclusive){
-					if(strcmp(key,searchKey) >= 0){
-						found = 0;
-						break;
-					}
-				}
-				else{
-					if(strcmp(key,searchKey) > 0){
-						found = 0;
-						break;
-					}
-				}
-
-				//increase offset
-				position += leafPageEntrySize;
-			}
-
-			break;
-		}
 	}
 
 	return found;
@@ -1690,6 +1334,7 @@ RC IX_ScanIterator::findHitForTypeInt(RID &rid, void* key){
 	return 0;
 }
 
+//TODO: copy above function
 RC IX_ScanIterator::findHitForTypeReal(RID &rid, void* key){
 
 	void* page = malloc(PAGE_SIZE);
@@ -1707,6 +1352,7 @@ RC IX_ScanIterator::findHitForTypeReal(RID &rid, void* key){
 	return 0;
 }
 
+//TODO: implement
 RC IX_ScanIterator::findHitForTypeVarChar(RID &rid, void* key){
 	void* page = malloc(PAGE_SIZE);
 	ixfileHandle->fileHandle.readPage(nextKeyPageNum, page);
@@ -1716,7 +1362,6 @@ RC IX_ScanIterator::findHitForTypeVarChar(RID &rid, void* key){
 	if(getPosition(page, lowKey, lowKeyInclusive, TypeInt, position) == -1){
 		return -1;
 	}
-
 
 
 	return 0;
