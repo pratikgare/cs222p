@@ -16,6 +16,8 @@
 using namespace std;
 
 
+// Global count variable
+
 IndexManager* IndexManager::_index_manager = 0;
 
 IndexManager* IndexManager::instance()
@@ -1128,51 +1130,95 @@ RC printPageEntries(void* page, AttrType type, short pageNum){
 
 }
 
-void IndexManager::printBtree(IXFileHandle &ixfileHandle, const Attribute &attribute) const {
+void printTab(int count){
+	for(int i=0; i<count; i++){
+		cout << "\t";
+	}
+}
 
-	void* page_data = malloc(PAGE_SIZE);
+int myRecursivePrintBTree (IXFileHandle &ixfileHandle, const Attribute &attribute, short root_page_num, int print_count){
 
-	short int root_page_num = (short int)ixfileHandle.fileHandle.getCounter(5);
-	short int left_page_num = 0;
-	short int right_page_num = 0;
+	bool child_flag = false;
 
-	while(root_page_num != DEFAULT_VAL  || left_page_num != DEFAULT_VAL || right_page_num != DEFAULT_VAL){
+	if(root_page_num != (short) DEFAULT_VAL){
 
-		cout << "{" << endl;
+		// All the recursive work here only
+		void* page_data = malloc(PAGE_SIZE);
+		ixfileHandle.fileHandle.readPage(root_page_num, page_data);
 
-		getOwnPageNumber(page_data, root_page_num);
+		short left_page_num = 0;
+		short right_page_num = 0;
+
+		// Get pointerToLeft and pointerToRight from metadata
 		getPointerToLeft(page_data, left_page_num);
 		getPointerToRight(page_data, right_page_num);
 
-		// Root Node
-		if(root_page_num != DEFAULT_VAL){
-			ixfileHandle.fileHandle.readPage(root_page_num, page_data);
-			printPageEntries(page_data, attribute.type, root_page_num);
-		}
+		// Print Root Node Directly without any spaces
+		printPageEntries(page_data, attribute.type, root_page_num);
 
+		// Adjusting spaces if we have any one of the children
 		if(left_page_num != DEFAULT_VAL || right_page_num != DEFAULT_VAL){
-			cout << "\"children\":[" << endl << "{" ;
-		}
-		// Left Node
-		if(left_page_num != DEFAULT_VAL){
-			ixfileHandle.fileHandle.readPage(left_page_num, page_data);
+			printTab(print_count);
 			cout << "," << endl;
-			printPageEntries(page_data, attribute.type, left_page_num);
+			printTab(print_count);
+			cout << "\"children\":[" << endl;
+			child_flag = true;
 		}
 
-		// Right Node
-		if(right_page_num != DEFAULT_VAL){
-			ixfileHandle.fileHandle.readPage(right_page_num, page_data);
-			printPageEntries(page_data, attribute.type, right_page_num);
+		if(child_flag == true){
+
+			// -Recursively call Left Node
+			// Adjusting spaces before left child call
+			printTab(print_count + 1);
+			cout << "{" ;
+
+			// Left child recursive print call
+			myRecursivePrintBTree(ixfileHandle, attribute, left_page_num, print_count + 1);
+
+			// Adjusting spaces after left child call
+			cout << endl;
+			printTab(print_count + 1);
+			if(left_page_num != DEFAULT_VAL)
+				cout <<"]";
+			cout << "}," << endl;
+
+
+			// -Recursively call Right Node
+			// Adjusting spaces before right child call
+			printTab(print_count + 1);
+			cout << "{" ;
+
+			// Right child recursive print call
+			if(right_page_num != DEFAULT_VAL)
+				myRecursivePrintBTree(ixfileHandle, attribute, right_page_num, print_count + 1);
+
+			// Adjusting spaces after right child call
+			cout << endl;
+			printTab(print_count + 1);
+			if(right_page_num != DEFAULT_VAL)
+				cout <<"]";
+			cout << "}" << endl;
+
+			if(left_page_num != DEFAULT_VAL || right_page_num != DEFAULT_VAL){
+				printTab(print_count);
+				cout << "]" << endl;
+			}
+
+			// increasing print_count for the next iteration
+			print_count ++;
+
 		}
-
-		cout << endl << "}" << endl;
-
-		break;
-
 	}
 
+	return -1;
 
+}
+
+void IndexManager::printBtree(IXFileHandle &ixfileHandle, const Attribute &attribute) const {
+	cout << "{" << endl;
+	short root_page_num = (short)ixfileHandle.fileHandle.getCounter(5);
+	myRecursivePrintBTree(ixfileHandle, attribute, root_page_num, 0);
+	cout << endl << "}" ;
 }
 
 IX_ScanIterator::IX_ScanIterator()
@@ -1409,10 +1455,6 @@ RC IX_ScanIterator::findHitForTypeVarChar(RID &rid, void* key){
 
 RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 {
-	int lowkeyVal = 0;
-	memcpy(&lowkeyVal, lowKey, sizeof(int));
-	//cout<<"In getNextEntry: "<<lowkeyVal<<endl;
-
 	switch(attribute->type){
 		case TypeInt:{
 			if(nextKey == NULL){
