@@ -766,30 +766,6 @@ RC IndexManager::deleteEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
     return 0;
 }
 
-/*  Actually we don't even need this function, extractKey function is doing the same thing.
-RC setKeys(const void *key, AttrType type, void* buffer){
-
-	switch(type){
-		case TypeInt:{
-			memcpy(buffer, key, sizeof(int));
-			break;
-		}
-		case TypeReal:{
-			memcpy(buffer, key, sizeof(int));
-			break;
-		}
-		case TypeVarChar:{
-			int varCharLength = 0;
-			memcpy(&varCharLength, key, sizeof(int));
-			memcpy(buffer, key, sizeof(int) + varCharLength);
-			break;
-		}
-	}
-
-	return 0;
-}
-*/
-
 RC searchLeftmostLeafNode(IXFileHandle &ixfileHandle, void *lowKey, AttrType type){
 
 	short rootPageNum = (short)ixfileHandle.fileHandle.getCounter(5);
@@ -930,44 +906,57 @@ RC IndexManager::scan(IXFileHandle &ixfileHandle,
 	ix_ScanIterator.ixfileHandle = &ixfileHandle;
 	ix_ScanIterator.attribute = &attribute;
 
+	// Never free these mallocs, this should be free in close of the iterator.
 	ix_ScanIterator.lowKey = malloc(PAGE_SIZE);
+	ix_ScanIterator.highKey = malloc(PAGE_SIZE);
+	ix_ScanIterator.nextKey = malloc(PAGE_SIZE);
+
 	int lowKeylength = 0;
+	int highKeylength = 0;
+	int nextKeyLen = 0;
 
 	if(lowKey){
+		// lowKey is not NULL
 		extractKey(lowKey, 0, attribute.type, ix_ScanIterator.lowKey, lowKeylength);
 		ix_ScanIterator.lowKeyInclusive = lowKeyInclusive;
 	}
 	else{
+		// lowKey is NULL
+		// Setting low key as leftmost key in leftmost leaf page with inclusiveness as true
+
 		ix_ScanIterator.lowKeyInclusive = true;
-
-
-		//TODO: if page 0 is empty
-
-		ix_ScanIterator.nextKeyPageNum = 0;
-
-
-
 		if(searchLeftmostLeafNode(ixfileHandle, ix_ScanIterator.lowKey, attribute.type)==-1){
-			return -1;
+					return -1;
 		}
+
+		// TODO: if leftmost page is empty [Handle this on Traversing Level]
 	}
 
-	ix_ScanIterator.highKey = malloc(PAGE_SIZE);
-	int highKeylength = 0;
-
 	if(highKey){
-		extractKey(highKey, 0, attribute.type, ix_ScanIterator.highKey, lowKeylength);
+		// highKey is not NULL
+		extractKey(highKey, 0, attribute.type, ix_ScanIterator.highKey, highKeylength);
 		ix_ScanIterator.highKeyInclusive = highKeyInclusive;
 	}
 	else{
-
-		// TODO : if right most page is empty
+		// highKey is NULL
+		// Setting high key as rightmost key in rightmost leaf page with inclusiveness as true
 
 		ix_ScanIterator.highKeyInclusive = true;
 		if(searchRightmostLeafNode(ixfileHandle, ix_ScanIterator.highKey, attribute.type)==-1){
 			return -1;
 		}
+
+		// TODO : if right most page is empty [Handle this on Traversing Level]
+
 	}
+
+	//TODO: if page 0 is empty
+
+	// Setting nextKey as the lowKey for the first iteration
+	extractKey(ix_ScanIterator.lowKey, 0, attribute.type, ix_ScanIterator.nextKey, nextKeyLen);
+
+	// Set any value other than -1, it won't matter.
+	ix_ScanIterator.nextKeyPageNum = 0;
 
     return 0;
 }
@@ -1223,11 +1212,12 @@ void IndexManager::printBtree(IXFileHandle &ixfileHandle, const Attribute &attri
 
 IX_ScanIterator::IX_ScanIterator()
 {
+	keyLength = 0;
 //	lowKey = NULL;
 //	highKey = NULL;
+//	nextKey = NULL;
 	lowKeyInclusive = false;
 	highKeyInclusive = false;
-	nextKey = NULL;
 	nextKeyPageNum = 0;
 }
 
@@ -1258,6 +1248,7 @@ RC IX_ScanIterator::getPosition(void* page, const void* nextkey, bool lowKeyIncl
 			}
 		}
 		else{
+			// lowKeyExclusive
 			if(compareKey(key, nextkey, type) > 0){
 				found = 0;
 				break;
@@ -1271,237 +1262,132 @@ RC IX_ScanIterator::getPosition(void* page, const void* nextkey, bool lowKeyIncl
 	return found;
 }
 
-RC IX_ScanIterator::findHitForTypeInt(RID &rid, void* key){
+RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 
+	// no other matching record exist in the file, end of file reached
 	if(nextKeyPageNum == -1){
 		return -1;
 	}
+	// Read rootPageNum
+	int rootPageNum = (int) ixfileHandle->fileHandle.getCounter(5);
 
-	//fetch root page num
-	int rootPageNum = ixfileHandle->fileHandle.getCounter(5);
+	// Traversing to reach the desired leaf page
 	nextKeyPageNum = traverse(nextKey, true, rootPageNum);
 
-	while(true){
+	// Creating variables for later use
+	void* page = malloc(PAGE_SIZE);
+	void* searchKey = malloc(PAGE_SIZE);
+	int nextKeyLength = 0;
+	void* rightPage = malloc(PAGE_SIZE);
 
-		//reading next key page
-		void* page = malloc(PAGE_SIZE);
-		ixfileHandle->fileHandle.readPage(nextKeyPageNum, page);
+	bool hit_flag = false;
 
-		//get the position of lowKey i.e start of matching entries
-		int position = 0;
-		if(getPosition(page, nextKey, lowKeyInclusive, TypeInt, position) == -1){
+	//reading next key page, look for hit in this page only
+	ixfileHandle->fileHandle.readPage(nextKeyPageNum, page);
+
+	// -get the position of nextKey in the page on the basis of inclusiveness boolean of lowKey
+	int position = 0;
+
+	//-getHitPosition
+	if(compareKey(nextKey, lowKey, type) == 0){
+		// first time comparison if nextKey == lowKey, check for inclusiveness too
+		getPosition(page, nextKey, lowKeyInclusive, type, position);
+	}
+	else{
+		// No need to check for inclusivity of the lower bound, since not first iteration
+		getOffset(page, nextKey, type, position);
+	}
+
+	// Got the position, now check where position is less than PAGE_SIZE or not
+	if(position <= PAGE_SIZE){
+
+		// FoundHit
+		extractKey(page, position, type, key, keyLength);
+
+		//Now just compare the hitkey with upper bound
+		if(highKeyInclusive){
+			// upper bound inclusive
+			if(compareKey(key, highKey, type) <= 0){
+				//return 'hit' RIDs and key
+				memcpy(&rid, (char*)page + position + keyLength, sizeof(RID));
+				hit_flag = true;
+			}
+		}
+		else{
+			// upper bound exclusive
+			if(compareKey(key, highKey, type) <= 0){
+				//return 'hit' RIDs and key
+				memcpy(&rid, (char*)page + position + keyLength, sizeof(RID));
+				hit_flag = true;
+			}
+		}
+
+		if(hit_flag == false){
+			// no hit
 			return -1;
 		}
 
-		//extract high key i.e till where to match
-		int highKEY = 0;
-		memcpy(&highKEY, highKey, sizeof(int));
+		//-Now, set nextKey here for next call, don't return anything here at all
+		//nextKeyPosition
+		int nextposition = position + keyLength + sizeof(RID);
 
-		//scanning nextKey
-		while(position <= PAGE_SIZE){
+		if(nextposition >= PAGE_SIZE){
+			//go to right sibling page
 
-			//nextKey
-			int searchKey = 0;
-			memcpy(&searchKey, (char*)page+position, sizeof(int));
+			short rightPageNum = 0;
+			getPointerToRight(page, rightPageNum);
 
-			//compare with high key
-			if(highKeyInclusive){
-				//inclusive
-				if(searchKey <= highKEY){
-					//return 'hit' RIDs and key
-					memcpy(&rid, (char*)page+position+sizeof(int), sizeof(RID));
-					memcpy(key, &searchKey, sizeof(int));
-
-					//-set nextKey for next call
-					//increment the position
-					position += sizeof(int) + sizeof(RID);
-
-					//chk for next page
-					if(position >= PAGE_SIZE){
-
-						//get the right page number
-						short rightPageNum = 0;
-						getPointerToRight(page, rightPageNum);
-
-						//reached end of the B+ tree
-						if(rightPageNum == -1){
-							nextKeyPageNum = -1;
-						}
-						//right page exists
-						//read the first key of this page
-						else{
-							void* rightPage = malloc(PAGE_SIZE);
-							ixfileHandle->fileHandle.readPage(rightPageNum, rightPage);
-
-							memcpy(nextKey, (char*)rightPage+METADATA, sizeof(int));
-							nextKeyPageNum = rightPageNum;
-						}
-					}
-					else{
-						//add breaking condition
-						short entriesRead = (position-METADATA)/(sizeof(int)+sizeof(RID));
-						short noOfEntries = 0;
-						getEntryCount(page, noOfEntries);
-						if(entriesRead < noOfEntries){
-							memcpy(nextKey, (char*)page+position, sizeof(int));
-						}
-						else{
-							nextKeyPageNum = -1;
-						}
-					}
-
-					// return hit
-					return 0;
-				}
-				else{
-					// no hit till now
-					return -1;
-				}
+			//reached end of the B+ tree
+			if(rightPageNum == -1){
+				// it will return -1 directly in the next iteration of findHit
+				nextKeyPageNum = -1;
 			}
 			else{
-				//exclusive
-				if(searchKey < highKEY){
-					//return 'hit' RIDs and key
-					memcpy(&rid, (char*)page+position+sizeof(int), sizeof(RID));
-					memcpy(key, &searchKey, sizeof(int));
+				// right page exists
+				// read the first key of this page and set it as nextKey
+				ixfileHandle->fileHandle.readPage(rightPageNum, rightPage);
+				extractKey(rightPage, METADATA, type, nextKey, nextKeyLength);
+				nextKeyPageNum = rightPageNum;
 
-					//-set nextKey for next call
+				// TODO: if right page is deleted page, go to further right sibling
+			}
+		}
+		else{
 
-					//increment the position
-					position += sizeof(int) + sizeof(RID);
+			// extract nextKey just after the hitKey
 
-					//chk for next page
-					if(position >= PAGE_SIZE){
+			// what if this was the last key, toh extractkey fat jayega.....
+			short freespacethispage = 0;
+			getFreeSpace(page, freespacethispage);
 
-						//get the right page number
-						short rightPageNum = 0;
-						getPointerToRight(page, rightPageNum);
-
-						//reached end of the B+ tree
-						if(rightPageNum == -1){
-							nextKeyPageNum = -1;
-						}
-						//right page exists
-						//read the first key of this page
-						else{
-							void* rightPage = malloc(PAGE_SIZE);
-							ixfileHandle->fileHandle.readPage(rightPageNum, rightPage);
-
-							memcpy(nextKey, (char*)rightPage+METADATA, sizeof(int));
-							nextKeyPageNum = rightPageNum;
-						}
-					}
-					else{
-						//add breaking condition
-						short entriesRead = (position-METADATA)/(sizeof(int)+sizeof(RID));
-						short noOfEntries = 0;
-						getEntryCount(page, noOfEntries);
-						if(entriesRead < noOfEntries){
-							memcpy(nextKey, (char*)page+position, sizeof(int));
-						}
-						else{
-							nextKeyPageNum = -1;
-						}
-					}
-
-					return 0;
-				}
-				else{
-					return -1;
-				}
+			if(nextposition == PAGE_SIZE - freespacethispage){
+				// it will return -1 directly in the next iteration of findHit
+				nextKeyPageNum = -1;
 			}
 
-			position += sizeof(int) + sizeof(RID);
+			// bindaas extract karo
+			extractKey(page, nextposition, type, nextKey, nextKeyLength);
+			}
+
+		}
+		else{
+			// no hit in this page
+			// No corner case, if the matching record is not in this page
+			// That means, end of file reached.
+			return -1;
 		}
 
-		//getPointerToRight(page, nextKeyPageNum);
-	}
-
+	// Hit found
 	return 0;
 }
 
-//TODO: copy above function
-RC IX_ScanIterator::findHitForTypeReal(RID &rid, void* key){
-
-	void* page = malloc(PAGE_SIZE);
-	ixfileHandle->fileHandle.readPage(nextKeyPageNum, page);
-
-	int position = 0;
-
-	if(getPosition(page, lowKey, lowKeyInclusive, TypeInt, position) == -1){
-		return -1;
-	}
-
-
-
-
-	return 0;
-}
-
-//TODO: implement
-RC IX_ScanIterator::findHitForTypeVarChar(RID &rid, void* key){
-	void* page = malloc(PAGE_SIZE);
-	ixfileHandle->fileHandle.readPage(nextKeyPageNum, page);
-
-	int position = 0;
-
-	if(getPosition(page, lowKey, lowKeyInclusive, TypeInt, position) == -1){
-		return -1;
-	}
-
-
-	return 0;
-}
 
 RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 {
-	switch(attribute->type){
-		case TypeInt:{
-			if(nextKey == NULL){
-				nextKey = malloc(sizeof(int));
-				memcpy(nextKey, lowKey, sizeof(int));
-			}
-			if(findHitForTypeInt(rid, key) == 0){
-				return 0;
-			}
-			else{
-				return -1;
-			}
-			break;
-		}
+	if(findHit(rid, key, attribute->type) == -1)
+		return -1;
 
-		case TypeReal:{
-			if(nextKey == NULL){
-				nextKey = malloc(sizeof(float));
-				memcpy(nextKey, lowKey, sizeof(float));
-			}
-			if(findHitForTypeReal(rid, key) == 0){
-				return 0;
-			}
-			else{
-				return -1;
-			}
-			break;
-		}
-
-		case TypeVarChar:{
-			if(nextKey == NULL){
-				int size = 0;
-				memcpy(&size, lowKey, sizeof(int));
-				nextKey = malloc(sizeof(int)+size);
-				memcpy(nextKey, lowKey, sizeof(int)+size);
-
-			}
-			if(findHitForTypeVarChar(rid, key) == 0){
-				return 0;
-			}
-			else{
-				return -1;
-			}
-			break;
-		}
-	}
-    return -1;
+	return 0;
 }
 
 RC IX_ScanIterator::close()
