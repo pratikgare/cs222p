@@ -56,7 +56,7 @@ public:
     // My fumctions
     RC increaseCounter(int mode);
     RC decreaseCounter(int mode);
-    unsigned getCounter(int mode);
+    RC getCounter(int mode);
     RC setCounter(int mode, int value);
 
 }; 

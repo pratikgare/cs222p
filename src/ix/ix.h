@@ -92,11 +92,12 @@ class IX_ScanIterator {
 
 		void* nextKey;
 		short nextKeyPageNum;
+		int keyLength;
 
-		RC getPosition(void* page, const void* lowKey, bool lowKeyInclusive,AttrType type, int &position);
-		RC findHitForTypeInt(RID &rid, void* key);
-		RC findHitForTypeReal(RID &rid, void* key);
-		RC findHitForTypeVarChar(RID &rid, void* key);
+		//RC getPosition(void* page, const void* lowKey, bool lowKeyInclusive,AttrType type, int &position);
+
+		RC findHit(RID &rid, void* key, AttrType type);
+
 
 		// Constructor
         IX_ScanIterator();

@@ -377,7 +377,7 @@ RC FileHandle::setCounter(int mode, int value){
 	return setCounterValue(handle, 5, value);
 }
 
-unsigned FileHandle::getCounter(int mode)
+RC FileHandle::getCounter(int mode)
 {
 	return(getCounterValue(handle, mode));
 }
