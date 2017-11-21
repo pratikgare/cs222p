@@ -109,6 +109,37 @@ int getCounterValue(FILE* file, int mode){
 	return value;
 }
 
+
+int getCounterValues(FILE* file, unsigned &readCounter, unsigned &writeCounter, unsigned &appendCounter){
+	// The values of mode can only be: 0- EncryptionKey, 1- read counter, 2- write counter, 3-append counter
+	// 4-numberofrecords, 5-rootNodePage
+
+	void* buffer = malloc(3*sizeof(unsigned));
+
+	// Get the contents of the file into a buffer
+	int offset = 0;
+
+	// setting ptr to begin
+	fseek(file, sizeof(unsigned), SEEK_SET);
+
+
+	// Reading hidden page data from the file.
+	fread(buffer, 3*sizeof(unsigned), 1, file);
+
+	memcpy(&readCounter, (char*)buffer+offset, sizeof(unsigned));
+	offset += sizeof(unsigned);
+
+	memcpy(&writeCounter, (char*)buffer+offset, sizeof(unsigned));
+	offset += sizeof(unsigned);
+
+	memcpy(&appendCounter, (char*)buffer+offset, sizeof(unsigned));
+	offset += sizeof(unsigned);
+
+	free(buffer);
+
+	return 0;
+}
+
 RC setCounterValue(FILE* file, int mode, int val1){
 
 	if(mode != 0 && mode != 1 && mode != 2 && mode != 3 && mode!=4 && mode!=5)
@@ -159,7 +190,7 @@ bool createHiddenPage(FILE* file){
 	fflush(file);
 
 	// Free the dynamic allocated heap memory to prevent the memory leak.
-	//free(hiddenPage);
+	free(hiddenPage);
 
 	return true;
 }
@@ -353,10 +384,7 @@ unsigned FileHandle::getNumberOfPages()
 
 RC FileHandle::collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount)
 {
-	readPageCount = getCounterValue(handle, 1);
-	writePageCount = getCounterValue(handle, 2);
-	appendPageCount = getCounterValue(handle, 3);
-	numberofrecords = getCounterValue(handle,4);
+	getCounterValues(handle, readPageCount, writePageCount, appendPageCount);
 
     return 0;
 }
