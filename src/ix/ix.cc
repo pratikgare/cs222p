@@ -292,12 +292,10 @@ RC initializePage(void* data){
 }
 
 //Prepare leaf entry
-// Has only key and RID
 RC prepareLeafEntry(const void* indexKey, void* indexEntry, AttrType type, const RID &rid, short &entrySize){
 
 	switch(type){
 		case TypeInt:{
-			//indexEntry = malloc(sizeof(int)+sizeof(RID));
 
 			int offset = 0;
 			memcpy((char*)indexEntry+offset, indexKey, sizeof(int));
@@ -310,7 +308,6 @@ RC prepareLeafEntry(const void* indexKey, void* indexEntry, AttrType type, const
 			break;
 		}
 		case TypeReal:{
-			//indexEntry = malloc(sizeof(int)+sizeof(RID));
 
 			int offset = 0;
 			memcpy((char*)indexEntry+offset, indexKey, sizeof(int));
@@ -325,10 +322,7 @@ RC prepareLeafEntry(const void* indexKey, void* indexEntry, AttrType type, const
 		case TypeVarChar:{
 
 			int varCharSize = 0;
-
 			memcpy(&varCharSize, indexKey, sizeof(int));
-
-			//indexEntry = malloc(sizeof(int) + varCharSize + sizeof(RID));
 
 			int offset = 0;
 			memcpy(indexEntry, indexKey, sizeof(int) + varCharSize);
@@ -342,12 +336,10 @@ RC prepareLeafEntry(const void* indexKey, void* indexEntry, AttrType type, const
 			break;
 		}
 	}
-
 	return 0;
 }
 
 //Prepare non-leaf entry
-// Has a key a right page pointer
 RC prepareNonLeafEntry(const short rightChildPageNum, const void* indexKey, void* indexEntry, AttrType type, short &entrySize){
 
 	switch(type){
@@ -380,13 +372,12 @@ RC prepareNonLeafEntry(const short rightChildPageNum, const void* indexKey, void
 			break;
 		}
 		case TypeVarChar:{
-			int varCharSize = 0;
 
+			int varCharSize = 0;
 			memcpy(&varCharSize, indexKey, sizeof(int));
 
-			int offset = 0;
-
 			//key
+			int offset = 0;
 			memcpy(indexEntry, indexKey, sizeof(int) + varCharSize);
 			offset += (sizeof(int) + varCharSize);
 
@@ -401,10 +392,6 @@ RC prepareNonLeafEntry(const short rightChildPageNum, const void* indexKey, void
 
 	return 0;
 }
-
-
-
-
 
 RC extractKey(const void* page, int offset, AttrType type, void* key, int &keyLength){
 
@@ -422,8 +409,11 @@ RC extractKey(const void* page, int offset, AttrType type, void* key, int &keyLe
 		}
 
 		case TypeVarChar:{
+			// extract only the varcharsize
 			memcpy(&keyLength, (char*)page+offset, sizeof(int));
+			// set whole key
 			memcpy(key, (char*)page+offset, sizeof(int)+keyLength);
+			// set keylength as [sizeof(int) + varcharsize]
 			keyLength += sizeof(int);
 			break;
 		}
@@ -478,20 +468,23 @@ RC compareKey(const void* key1, const void* key2, AttrType type){
 		}
 
 		case TypeVarChar:{
-			int keyLength = 0;
-			memcpy(&keyLength, key1, sizeof(int));
+			int keyLength1 = 0;
+			memcpy(&keyLength1, key1, sizeof(int));
 
-			char* varcharkey1 = (char*) malloc(keyLength+1);
-			memcpy(varcharkey1, (char*)key1+sizeof(int), keyLength);
-			varcharkey1[keyLength] = '\0';
+			char* varcharkey1 = (char*) malloc(keyLength1+1);
+			memcpy(varcharkey1, (char*)key1 + sizeof(int), keyLength1);
+			varcharkey1[keyLength1] = '\0';
 
-			memcpy(&keyLength, key2, sizeof(int));
-			char* varcharkey2 = (char*) malloc(keyLength+1);
-			memcpy(varcharkey2, (char*)key2+sizeof(int), keyLength);
-			varcharkey2[keyLength] = '\0';
+			int keyLength2 = 0;
+			memcpy(&keyLength2, key2, sizeof(int));
+			char* varcharkey2 = (char*) malloc(keyLength2+1);
+			memcpy(varcharkey2, (char*)key2 + sizeof(int), keyLength2);
+			varcharkey2[keyLength2] = '\0';
 
 			status = strcmp(varcharkey1, varcharkey2);
 
+			free(varcharkey1);
+			free(varcharkey2);
 			break;
 		}
 
@@ -499,8 +492,6 @@ RC compareKey(const void* key1, const void* key2, AttrType type){
 
 	return status;
 }
-
-
 
 //Should return the place where it should insert
 //TODO: irrespective of page type which will insert/give position to be inserted
@@ -538,6 +529,7 @@ RC getOffset(void* page, const void* searchKey, int &keyLength, AttrType type, i
 
 	}
 
+	free(key);
 	return 0;
 }
 
@@ -559,17 +551,11 @@ RC shiftRightAndInsertEntry(void* page, const void* entry, const int &entrySize,
 
 	free(buffer);
 
-
-
 	return 0;
 
 }
 
 RC writeIntoPageBuffer(void* page, const void* entry, const int &entrySize, const int &offsetToBeInserted){
-
-	//int testKey = 0;
-	//memcpy(&testKey, entry, sizeof(int));
-	//cout << "After calling : " << testKey <<endl;
 
 	shiftRightAndInsertEntry(page, entry, entrySize, offsetToBeInserted);
 
@@ -592,44 +578,6 @@ RC writeIntoPageBuffer(void* page, const void* entry, const int &entrySize, cons
 
 	return 0;
 }
-
-//called iff there is free space
-RC writeIntoPage(IXFileHandle &ixfileHandle, void* page_data, short pageNumber){
-	ixfileHandle.fileHandle.writePage(pageNumber, page_data);
-	return 0;
-}
-
-//RC insertEntryIntoGivenPage(void* page_data, const void* entry, const int entrySize, int offsetToBeInserted){
-//
-//	//add entry in a page iff there is space
-//
-//	//write into buffer - shift right to create space and insert entry in sorted location
-//	writeIntoPageBuffer(page_data, entry, entrySize, offsetToBeInserted);
-//
-//	else{
-//
-//		//split
-//
-//
-//		//write into a leaf node
-//
-//
-//
-//		//update the metadata i.e decrement the freespace
-//
-//
-//		//write into a non-leaf node = ROOT CREATION
-//		//replace the root pointer in the hidden page - call set with mode 5
-//
-//
-//		//update the metadata i.e decrement the freespace
-//
-//	}
-//
-//	return 0;
-//}
-
-
 
 RC getSplitOffset(void* page, void* key, int &keyLength, AttrType type, int &offsetToBeInserted, int &visitedKeyCount){
 
@@ -683,223 +631,7 @@ RC getSplitOffset(void* page, void* key, int &keyLength, AttrType type, int &off
 		getOffset(page, key, keyLength,type, offsetToBeInserted);
 	}
 
-	return 0;
-}
-
-RC printKey(void* key, const int keylength, AttrType type){
-	switch(type){
-		case TypeInt:{
-			int keyvalue = 0;
-			memcpy(&keyvalue, key, keylength);
-			cout << keyvalue;
-			break;
-		}
-		case TypeReal:{
-			float keyvalue = 0.0;
-			memcpy(&keyvalue, key, keylength);
-			cout << keyvalue;
-			break;
-		}
-		case TypeVarChar:{
-			char *keyvalue = (char*) malloc(keylength+1);
-			memcpy(&keyvalue, key, keylength);
-			keyvalue[keylength] = '\0';
-			cout << keyvalue;
-			break;
-		}
-	}
-
-	return 0;
-}
-
-RC printNonLeafPageEntries(void* page_data, AttrType type){
-
-	// First key starts from this position, Metadata + leftChild
-	int offset = METADATA + sizeof(short);
-
-	short entry_count = 0;
-	getEntryCount(page_data, entry_count);
-
-	cout<<"\"keys\":[";
-
-	// Printing all the keys only, Non-Leaf page, no duplicates handling
-	void* key = malloc(PAGE_SIZE);
-	int keyLength = 0;
-	for(int i=0; i<entry_count; i++){
-		// extract the key from the desired offset
-		extractKey(page_data, offset, type, key, keyLength);
-		cout<<"\"";
-
-		// print the key based upon the attribute type
-		printKey(key, keyLength, type);
-		cout<<"\"";
-
-		// Just skip the last comma
-		if(i != entry_count-1){
-			cout<<",";
-		}
-
-		// increase the offset such that next key can be extracted in next iteration
-		// key + right child
-		offset = keyLength + sizeof(short);
-	}
-	cout<<"]";
-
-	return 0;
-}
-
-
-
-RC printLeafPageEntries(void* page_data, AttrType type){
-
-	// First <key,rid> starts from this position
-	int offset = METADATA;
-
-	bool dupli_flag = false;
-
-	short entry_count = 0;
-	getEntryCount(page_data, entry_count);
-
-	cout << "\"keys\":[";
-
-	// Printing all the <key,rid> pair, Leaf page, duplicates handling too
-	void* key = malloc(PAGE_SIZE);
-	void* prev_key = malloc(PAGE_SIZE);
-	RID rid;
-	int keyLength = 0;
-
-	for(int i=0; i<entry_count; i++){
-		// extract the key from the desired offset
-		extractKey(page_data, offset, type, key, keyLength);
-
-		// Check for duplication after skipping the first iteration
-		if(compareKey(key, prev_key, type) == 0 && i!=0){
-			dupli_flag = true;
-			cout << ",";
-		}
-		else{
-			if(i!=0){
-				dupli_flag = false;
-				cout << "]\"";
-				// Just skip the last comma
-				if(i != entry_count-1 ){
-					cout<<",";
-				}
-			}
-		}
-
-		if(dupli_flag == false){
-			cout << "\"";
-			// print the key based upon the attribute type
-			printKey(key, keyLength, type);
-			cout << ":[";
-		}
-
-		// Extract RID and print it
-		memcpy(&rid, (char*)page_data + offset + keyLength, sizeof(RID));
-		cout << "(" << rid.pageNum << "," << rid.slotNum << ")";
-
-		// last entry printing
-		if(i == entry_count - 1){
-			cout << "]\"";
-			break;
-		}
-
-		// increase the offset such that next key can be extracted in next iteration
-		// key + right child
-		offset = keyLength + sizeof(short);
-
-		// Setting prev_key as currentkey for next iteration of duplicate check
-		memcpy(prev_key, key, keyLength);
-	}
-	cout<<"]";
-
-	return 0;
-}
-
-RC printPageEntries(void* page, AttrType type, short pageNum){
-
-	short leaf_flag = 0;
-	getLeafFlag(page, leaf_flag);
-
-	bool isLeaf = (leaf_flag == LEAF_FLAG) ? true : false;
-
-	if(isLeaf){
-		short entryCount = 0;
-		getEntryCount(page, entryCount);
-
-		// empty page/deleted page
-		if(entryCount < 1){
-			// TODO: What if the Leaf is deleted?
-			// probably return 1 to signal this??? How to Handle?
-			return 1;
-		}
-		else{
-			printLeafPageEntries(page, type);
-		}
-	}
-	else{
-		printNonLeafPageEntries(page, type);
-	}
-
-	return 0;
-
-}
-
-//TODO: complete the function
-RC printMyPageEntries(void* page, AttrType type){
-
-	short currPgNum = 0;
-	getOwnPageNumber(page, currPgNum);
-
-
-	short leaf = 0;
-	getLeafFlag(page, leaf);
-
-	bool isLeaf = (leaf == LEAF_FLAG)? true : false;
-
-	cout<<"Pg num : "<<currPgNum<<endl;
-
-	if(!isLeaf){
-		short leftPgNum = 0;
-		getLeftPageNum(page, leftPgNum);
-		cout<< leftPgNum << " ";
-	}
-
-	switch(type){
-		case TypeInt:{
-			short recordCount;
-			getEntryCount(page, recordCount);
-			int offset = METADATA;
-
-			for(int i=0;i<recordCount;i++){
-				int val;
-				memcpy(&val, (char*) page + offset, sizeof(int));
-				cout << val << " ";
-				if(isLeaf){
-					offset+=sizeof(int) + sizeof(RID);
-				}
-				else{
-					short rightPgNum = 0;
-					memcpy(&rightPgNum, (char*)page+offset+sizeof(int), sizeof(short));
-					cout<<rightPgNum<<" ";
-					offset+=sizeof(int) + sizeof(short);
-				}
-			}
-			cout<<"-----" << endl;
-			break;
-		}
-		case TypeReal:{
-
-			break;
-		}
-		case TypeVarChar:{
-
-			break;
-		}
-
-	}
-
+	free(prevKey);
 
 	return 0;
 }
@@ -959,6 +691,7 @@ RC splitNonLeaf(IXFileHandle &ixfileHandle, void* oldPage, const void* key, Attr
 	void* buffer = malloc(PAGE_SIZE);
 	memcpy(buffer, oldPage, splitOffset);
 	memcpy(oldPage, buffer, PAGE_SIZE);
+	free(buffer);
 
 	//update metadata old page
 	setEntryCount(oldPage, (short)visitedKeyCount);
@@ -988,11 +721,15 @@ RC splitNonLeaf(IXFileHandle &ixfileHandle, void* oldPage, const void* key, Attr
 	}
 
 	//write the page to disk
+	//DISK IO
 	ixfileHandle.fileHandle.appendPage(newPage);
 
 	short oldPageNum = 0;
 	getOwnPageNumber(oldPage, oldPageNum);
+	//Disk IO
 	ixfileHandle.fileHandle.writePage(oldPageNum, oldPage);
+
+	free(newPage);
 
 	return 0;
 }
@@ -1001,7 +738,6 @@ RC splitLeaf(IXFileHandle &ixfileHandle, void* oldPage, const void* key, AttrTyp
 
 	//
 	//printMyLeafEntries(oldPage, type);
-
 
 	int splitOffset = 0;
 
@@ -1045,12 +781,11 @@ RC splitLeaf(IXFileHandle &ixfileHandle, void* oldPage, const void* key, AttrTyp
 	getPointerToRight(oldPage, oldPagePtrToRight);
 	setPointerToRight(newPage, oldPagePtrToRight);
 
-
-
 	//delete the redundant entries
 	void* buffer = malloc(PAGE_SIZE);
 	memcpy(buffer, oldPage, splitOffset);
 	memcpy(oldPage, buffer, PAGE_SIZE);
+	free(buffer);
 
 	//update metadata old page
 	setEntryCount(oldPage, (short)visitedKeyCount);
@@ -1082,11 +817,10 @@ RC splitLeaf(IXFileHandle &ixfileHandle, void* oldPage, const void* key, AttrTyp
 
 //	printLeafPageEntries(oldPage, type);
 //	printLeafPageEntries(newPage, type);
-
-
 //	printMyLeafEntries(oldPage, type);
 //	printMyLeafEntries(newPage, type);
 
+	//DISK IO
 	//write to the disk
 	ixfileHandle.fileHandle.appendPage(newPage);
 
@@ -1094,6 +828,8 @@ RC splitLeaf(IXFileHandle &ixfileHandle, void* oldPage, const void* key, AttrTyp
 	getOwnPageNumber(oldPage, oldPageNum);
 	ixfileHandle.fileHandle.writePage(oldPageNum, oldPage);
 
+
+	free(newPage);
 
 	return 0;
 }
@@ -1114,19 +850,21 @@ RC getOffsetOfLastEntry(void* page, int &offsetOfLastEntry, AttrType type){
 		offsetOfLastEntry += keyLength + sizeof(short);
 	}
 
+	free(key);
 	return 0;
 }
 
-
 RC insertRec(IXFileHandle &ixfileHandle, short pageNum, const void* key, const RID rid, void* pushKey, short &pushVal, AttrType type){
 
-int incoming_key;
-	memcpy(&incoming_key, key, 4);
-	if(incoming_key == 500){
-		int y=1;
-	}
+//	int incoming_key;
+//	memcpy(&incoming_key, key, 4);
+//	if(incoming_key == 500){
+//		int y=1;
+//	}
 
 	void* page = malloc(PAGE_SIZE);
+
+	//Disk IO
 	ixfileHandle.fileHandle.readPage(pageNum, page);
 
 	short value = 0;
@@ -1173,11 +911,12 @@ int incoming_key;
 			}
 
 		}
+
+		free(nonLeafKey);
+
+
 		//call recursively
 		insertRec(ixfileHandle, pgNum, key, rid, pushKey, pushVal, type);
-
-
-
 
 		//calc freespace
 		short freeSpace = 0;
@@ -1185,6 +924,7 @@ int incoming_key;
 
 		if(pushVal == -1){
 			//no split
+			free(page);
 			return 0;
 		}
 		else{
@@ -1206,15 +946,19 @@ int incoming_key;
 
 				short pg = 0;
 				getOwnPageNumber(page, pg);
-				writeIntoPage(ixfileHandle, page, pg);
+				//writeIntoPage(ixfileHandle, page, pg);
+				//DISK IO
+				ixfileHandle.fileHandle.writePage(pg, page);
 
 				pushVal = -1;
 			}
 			else{
 				//split
 				splitNonLeaf(ixfileHandle, page, key, type, entry, entrySize, pushKey, pushVal);
+				free(page);
 				return 0;
 			}
+			free(entry);
 		}
 
 	}
@@ -1239,7 +983,7 @@ int incoming_key;
 			writeIntoPageBuffer(page, entry, entrySize, offsetToBeInserted);
 
 			//write into disk
-			writeIntoPage(ixfileHandle, page, pageNum);
+			ixfileHandle.fileHandle.writePage(pageNum, page);
 
 			//set pushkey to -1, implying no split
 //			int pushkey = -1;
@@ -1251,13 +995,20 @@ int incoming_key;
 			//call split
 			splitLeaf(ixfileHandle, page, key, type, entry, entrySize, pushKey, pushVal);
 		}
+
+		free(entry);
 	}
+
+
+	free(page);
 
 	return 0;
 }
 
 RC IndexManager::insertEntry(IXFileHandle &ixfileHandle, const Attribute &attribute, const void *key, const RID &rid)
 {
+	//Disk IO
+	//reading root page num
 	short rootPageNum = (short)ixfileHandle.fileHandle.getCounter(5);
 
 	// First entry ever
@@ -1265,9 +1016,6 @@ RC IndexManager::insertEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 		// Create your page meta data - till now 30 bytes
 		void* page_data = malloc(PAGE_SIZE);
 		initializePage(page_data);
-
-//		void* page_data = malloc(PAGE_SIZE);
-//		ixfileHandle.fileHandle.readPage(0, page_data);
 
 		//prepare leaf entry
 		void* entry = malloc(PAGE_SIZE);
@@ -1283,27 +1031,24 @@ RC IndexManager::insertEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 		getOffset(page_data, key, keyLength, attribute.type, offsetToBeInserted);
 		//cout << "Returned offset to be inserted : " << offsetToBeInserted << endl;
 
+		//actually inserting the data in page buffer
 		writeIntoPageBuffer(page_data, entry, entrySize, offsetToBeInserted);
 
-		//
+		//updating metadata
 		short pageNumber = (short)(ixfileHandle.fileHandle.getNumberOfPages());
 		setOwnPageNumber(page_data, pageNumber);
 
+
+		//Disk IO
+		//writing to disk
 		ixfileHandle.fileHandle.appendPage(page_data);
 
-		//printPage
-//		cout<<"Page no."<<pageNumber<<endl;
-//		cout<<"Page content."<<pageNumber<<endl;
-//		void* pageContent = malloc(PAGE_SIZE);
-//		for(int i=0; i<1; i++){
-//			memcpy()
-//			cout<<
-//
-//		}
-//		cout<<"------"<<endl<<endl;
+		//Disk IO
 		//updating the root page number
 		ixfileHandle.fileHandle.setCounter(5, pageNumber);
 
+		free(entry);
+		free(page_data);
 	}
 	else{
 		//traverse logic to the desired location
@@ -1337,12 +1082,17 @@ RC IndexManager::insertEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 
 			//printMyLeafEntries(rootPage, attribute.type);
 
+			//Disk IO
 			ixfileHandle.fileHandle.appendPage(rootPage);
 
 			//updating the root page number
 			ixfileHandle.fileHandle.setCounter(5, newRootPgNum);
+
+			free(entry);
+			free(rootPage);
 		}
 
+		free(pushKey);
 	}
 //
 //	void* page = malloc(PAGE_SIZE);
@@ -1404,6 +1154,7 @@ RC getPosition(void* page, const void* nextkey, bool lowKeyInclusive, AttrType t
 
 	}
 
+	free(key);
 	return found;
 }
 
@@ -1412,6 +1163,10 @@ RC getPositionWithCount(void* page, const void* nextkey, bool lowKeyInclusive, A
 	//get number of index entries
 	short entryCount = 0;
 	getEntryCount(page, entryCount);
+
+	short leaf = 0;
+	getLeafFlag(page, leaf);
+	bool is_leaf = (leaf == LEAF_FLAG) ? true : false;
 
 	position = METADATA;
 
@@ -1436,10 +1191,19 @@ RC getPositionWithCount(void* page, const void* nextkey, bool lowKeyInclusive, A
 			}
 		}
 
-		position += keyLength + sizeof(RID);
+		if(is_leaf){
+			// key + rid
+			position += keyLength + sizeof(RID);
+		}
+		else{
+			// key + rightchild
+			position += keyLength + sizeof(short);
+		}
+
 		visitedkeysCount++;
 	}
 
+	free(key);
 	return found;
 }
 
@@ -1448,7 +1212,11 @@ RC getRightNonEmptyPage(IXFileHandle &ixfileHandle, short &pagenum){
 	void* page = malloc(PAGE_SIZE);
 	short entries = 0;
 	while(true){
-			ixfileHandle.fileHandle.readPage(pagenum, page);
+			// trying to read an invalid page
+			if(ixfileHandle.fileHandle.readPage(pagenum, page) == -1){
+				free(page);
+				return -1;
+			}
 
 			// getEntryCount
 			getEntryCount(page, entries);
@@ -1462,6 +1230,7 @@ RC getRightNonEmptyPage(IXFileHandle &ixfileHandle, short &pagenum){
 			}
 	}
 
+	free(page);
 	return 0;
 }
 
@@ -1469,16 +1238,26 @@ short traverse(IXFileHandle &ixfileHandle, const void* searchKey, bool searchKey
 
 	short pageNum = 0;
 
-	//if ROOT not created
+	void* page = malloc(PAGE_SIZE);
+	ixfileHandle.fileHandle.readPage(rootPageNum, page);
+
+	//if ROOT == leaf page
 	if(rootPageNum == 0){
+		// checking special condition where index is empty
+
+		short entries = 0;
+		getEntryCount(page, entries);
+		if(entries == 0){
+			free(page);
+			return -1;
+		}
+
+		// returning the only page in the file
+		free(page);
 		return rootPageNum;
 	}
 	//else ROOT created
 	else{
-		void* page = malloc(PAGE_SIZE);
-
-		ixfileHandle.fileHandle.readPage(rootPageNum, page);
-
 		short value = 0;
 		getLeafFlag(page, value);
 
@@ -1491,13 +1270,29 @@ short traverse(IXFileHandle &ixfileHandle, const void* searchKey, bool searchKey
 		int extractedKeyLength = 0;
 
 		while(!isLeaf){
+			// for non-leaf
 
+			//add logic to chk if it is last entry
 			getOffset(page, searchKey, keyLength, type, offset);
+
+			int position = 0;
+			int visitedKeyCount = 0;
+
+			getPositionWithCount(page, searchKey, searchKeyInclusive, type, position, visitedKeyCount);
+
+			short entries = 0;
+			getEntryCount(page, entries);
+
+			// special condition
+			// [offset is at the end of page, drag it back with one key+right block]
+			if(visitedKeyCount == entries){
+				offset = offset - keyLength - sizeof(short);
+			}
 
 			extractKey(page, offset, type, extractedKey, extractedKeyLength);
 
 			if(compareKey(searchKey, extractedKey, type) < 0){
-				//left
+				//left child page num (<)
 				if(offset == METADATA){
 					getLeftPageNum(page, pageNum);
 				}
@@ -1507,7 +1302,7 @@ short traverse(IXFileHandle &ixfileHandle, const void* searchKey, bool searchKey
 
 			}
 			else{
-				//right
+				//right child page num (>=)
 				memcpy(&pageNum, (char*)page+offset+extractedKeyLength, sizeof(short));
 			}
 
@@ -1518,7 +1313,7 @@ short traverse(IXFileHandle &ixfileHandle, const void* searchKey, bool searchKey
 			isLeaf = (value == LEAF_FLAG) ? true : false;
 		}
 
-		//tht condition
+		//that condition [reached leaf, but it might not be present in this page].
 		int position = 0;
 		int visitedKeyCount = 0;
 
@@ -1529,11 +1324,14 @@ short traverse(IXFileHandle &ixfileHandle, const void* searchKey, bool searchKey
 
 		if(visitedKeyCount == entries){
 			getPointerToRight(page, pageNum);
+			// [check for non-empty page.]
 			getRightNonEmptyPage(ixfileHandle, pageNum);
 		}
 
+		free(extractedKey);
 	}
 
+	free(page);
 	return pageNum;
 }
 
@@ -1551,24 +1349,19 @@ RC shiftLeft(void* page, const int offset, const int shiftLength){
 
 RC IndexManager::deleteEntry(IXFileHandle &ixfileHandle, const Attribute &attribute, const void *key, const RID &rid)
 {
-
 	//fetch root page num
 	int rootPageNum = ixfileHandle.fileHandle.getCounter(5);
 
-	//cout<<"RootPagenumber : "<<rootPageNum<<endl;
+	short pageNum = traverse(ixfileHandle, key, true, attribute.type, rootPageNum);
 
 	//read after traversing the tree
 	void* page = malloc(PAGE_SIZE);
-
-	short pageNum = traverse(ixfileHandle, key, true, attribute.type, rootPageNum);
-
 	ixfileHandle.fileHandle.readPage(pageNum, page);
 
 	//getOffset()
 	int offset = 0;
 	int keyLength = 0;
 	getOffset(page, key, keyLength, attribute.type, offset);
-
 
 	//move to the key and compare the rid then delete
 	void* entryKey = malloc(PAGE_SIZE);
@@ -1579,7 +1372,9 @@ RC IndexManager::deleteEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 	while(true){
 		extractKey(page, offset, attribute.type, entryKey, entryKeyLength);
 
-		if(memcmp(entryKey, key, entryKeyLength) == 0){
+		// compare entryKey and key for equality
+		if(compareKey(entryKey, key, attribute.type) == 0){
+			// keys are equal, now check for rid's
 			memcpy(&entryRid, (char*)page+offset+entryKeyLength, sizeof(RID));
 			if(entryRid.pageNum == rid.pageNum && entryRid.slotNum==rid.slotNum){
 				//delete logic
@@ -1589,22 +1384,29 @@ RC IndexManager::deleteEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 			else{
 				offset += entryKeyLength+sizeof(RID);
 				if(offset >= PAGE_SIZE){
+					free(page);
+					free(entryKey);
 					return -1;
 				}
 			}
 		}
 		else{
+			free(page);
+			free(entryKey);
 			return -1;
 		}
 	}
 
-	//update metadata
+	//update metadata [entryCount, freespace]
 
 	//decrement Entry Count
 	decrementEntryCount(page);
 
-	//Check if page has entries after deletion
-	//if not update the deleted flag
+	//update freespace
+	incrementFreeSpace(page, entryKeyLength+sizeof(RID));
+
+	// Setting the deleted flag, special condition
+	// actually no need for this, we are not even using the deleted flag anywhere.
 	short noOfEntries = 0;
 	getEntryCount(page, noOfEntries);
 	if(noOfEntries == 0){
@@ -1612,16 +1414,18 @@ RC IndexManager::deleteEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 		setDeletedFlag(page, 1);
 	}
 
-	//update freespace
-	incrementFreeSpace(page, entryKeyLength+sizeof(RID));
-
 	//write the changes to the page
-	writeIntoPage(ixfileHandle, page, pageNum);
+	//writeIntoPage(ixfileHandle, page, pageNum);
+	ixfileHandle.fileHandle.writePage(pageNum, page);
 
+	free(page);
+	free(entryKey);
     return 0;
 }
 
 RC searchLeftmostLeafNode(IXFileHandle &ixfileHandle, void *lowKey, AttrType type, short &pgNum){
+
+	pgNum = 0;
 
 	void* page = malloc(PAGE_SIZE);
 	ixfileHandle.fileHandle.readPage(0, page);
@@ -1629,17 +1433,19 @@ RC searchLeftmostLeafNode(IXFileHandle &ixfileHandle, void *lowKey, AttrType typ
 	short entries = 0;
 	getEntryCount(page, entries);
 
-
-
 	if(entries == 0){
 		getRightNonEmptyPage(ixfileHandle, pgNum);
-		ixfileHandle.fileHandle.readPage(pgNum, page);
-		cerr << "No enries.... moving to right non-empty sibling"<<endl;
+		if(ixfileHandle.fileHandle.readPage(pgNum, page)==-1){
+			pgNum = -1;
+			free(page);
+			return -1;
+		}
 	}
 
 	int lowKeyLen = 0;
 	extractKey(page, METADATA, type, lowKey, lowKeyLen);
 
+	free(page);
 	return 0;
 }
 
@@ -1657,64 +1463,6 @@ int getlastEntryPosition(void* page){
 	return offset;
 }
 
-RC searchRightmostLeafNode(IXFileHandle &ixfileHandle, void *highKey, AttrType type){
-
-	short rootPageNum = (short)ixfileHandle.fileHandle.getCounter(5);
-
-	if(rootPageNum == 0){
-		if(ixfileHandle.fileHandle.getNumberOfPages() == 0){
-			return -1;
-		}
-		else{
-			//get entryCount
-			void* page = malloc(PAGE_SIZE);
-			ixfileHandle.fileHandle.readPage(0, page);
-
-			short entryCount = 0;
-			getEntryCount(page, entryCount);
-
-			int offset = METADATA;
-
-			switch(type){
-				//handling int and real
-				case TypeInt:{
-					offset += (entryCount-1)*(sizeof(int)+sizeof(RID));
-					//highKey = malloc(sizeof(int));
-					memcpy(highKey, (char*)page + offset, sizeof(int));
-					break;
-				}
-
-				case TypeReal:{
-					offset += (entryCount-1)*(sizeof(int)+sizeof(RID));
-					//highKey = malloc(sizeof(int));
-					memcpy(highKey, (char*)page+offset, sizeof(float));
-					break;
-				}
-				//handling varchar
-				case TypeVarChar:{
-					int Varlength = 0;
-					int lastEntryoffset = getlastEntryPosition(page);
-
-					int varlength = 0;
-					memcpy(&varlength, (char*)page+lastEntryoffset, sizeof(int));
-
-					//highKey = malloc(sizeof(int)+varlength);
-					memcpy(highKey, (char*)page+lastEntryoffset, sizeof(int) + Varlength);
-
-					break;
-				}
-			}
-		}
-	}
-	else{
-		//TODO: call traverse()
-
-	}
-
-	return 0;
-}
-
-
 RC IndexManager::scan(IXFileHandle &ixfileHandle,
         const Attribute &attribute,
         const void      *lowKey,
@@ -1729,7 +1477,7 @@ RC IndexManager::scan(IXFileHandle &ixfileHandle,
 
 	int rootPg = ixfileHandle.fileHandle.getCounter(5);
 
-	// if index is empty
+	// No index on disk, return -1
 	if(rootPg == NO_ROOT){
 		return -1;
 	}
@@ -1750,12 +1498,14 @@ RC IndexManager::scan(IXFileHandle &ixfileHandle,
 		extractKey(lowKey, 0, attribute.type, ix_ScanIterator.lowKey, lowKeylength);
 		ix_ScanIterator.lowKeyInclusive = lowKeyInclusive;
 
+		// if index is empty, it will be -1, otherwise the value of the desired page number.
 		ix_ScanIterator.nextKeyPageNum = traverse(ixfileHandle, lowKey, lowKeyInclusive, attribute.type, rootPg);
 	}
 	else{
 		// lowKey is NULL
 		// Setting low key as leftmost key in leftmost leaf page with inclusiveness as true
 		ix_ScanIterator.lowKeyInclusive = true;
+
 		if(searchLeftmostLeafNode(ixfileHandle, ix_ScanIterator.lowKey, attribute.type, ix_ScanIterator.nextKeyPageNum)==-1){
 			return -1;
 		}
@@ -1775,8 +1525,6 @@ RC IndexManager::scan(IXFileHandle &ixfileHandle,
 		ix_ScanIterator.highKeyInclusive = true;
 	}
 
-	//TODO: if page 0 is deleted page, but index is not empty.
-
 	// Setting nextKey as the lowKey for the first iteration
 	extractKey(ix_ScanIterator.lowKey, 0, attribute.type, ix_ScanIterator.nextKey, nextKeyLen);
 
@@ -1784,19 +1532,35 @@ RC IndexManager::scan(IXFileHandle &ixfileHandle,
 
 }
 
-RC printNonLeafPageEntries(void* page, AttrType type, const int entryCount){
+RC printKey(void* key, AttrType type){
 	switch(type){
 		case TypeInt:{
-
+			int keyvalue = 0;
+			memcpy(&keyvalue, key, sizeof(int));
+			cout << keyvalue;
 			break;
 		}
-
 		case TypeReal:{
-
+			float keyvalue = 0.0;
+			memcpy(&keyvalue, key, sizeof(float));
+			cout << keyvalue;
 			break;
 		}
-
 		case TypeVarChar:{
+			// extract keylength first
+			int keylen = 0;
+			memcpy(&keylen, key, sizeof(int));
+
+			char* keyvalue = (char*) malloc(keylen);
+
+			// extract only keyVarChar
+			memcpy(keyvalue, (char*) key + sizeof(int), keylen);
+
+			// put that into string
+			string mykey((char*)keyvalue, keylen);
+
+			// print that string
+			cout << mykey;
 
 			break;
 		}
@@ -1805,133 +1569,280 @@ RC printNonLeafPageEntries(void* page, AttrType type, const int entryCount){
 	return 0;
 }
 
-RC printLeafPageEntries(void* page, const AttrType type, const int entryCount){
+RC printNonLeafPageEntries(void* page_data, AttrType type){
+
+	// First key starts from this position
 	int offset = METADATA;
 
-	switch(type){
-		case TypeInt:{
+	short entry_count = 0;
+	getEntryCount(page_data, entry_count);
 
-			//leaf - 12 bytes
-			// key + rid
-			//int leafPageEntrySize = sizeof(int) + (sizeof(RID));
+	cout<<"\"keys\":[";
 
-			int key = 0;
+	// Printing all the keys only, Non-Leaf page, no duplicates handling needed
+	void* key = malloc(PAGE_SIZE);
+	int keyLength = 0;
 
-			int prevKey  = -1;
+	for(int i=0; i<entry_count; i++){
+		// extract the key from the desired offset
+		extractKey(page_data, offset, type, key, keyLength);
+		cout<<"\"";
 
-			//search for the correct position
-			for(int i=0; i<entryCount; i++){
+		// print the key based upon the attribute type
+		printKey(key, type);
+		cout<<"\"";
 
-				//read key of entry 'i'
-				memcpy(&key, (char*)page+offset, sizeof(int));
-				offset += sizeof(int);
-
-				//read rid of entry 'i'
-				RID rid;
-				memcpy(&rid, (char*)page+offset, sizeof(RID));
-				offset += sizeof(RID);
-
-				if(key == prevKey){
-					cout << "(" << rid.pageNum << "," << rid.slotNum << ")";
-				}
-				else{
-					if(i!=0){
-						cout<<"]\",";
-					}
-					cout << "\"" << key << ":";
-
-					cout << "[(" << rid.pageNum << "," << rid.slotNum << ")";
-					prevKey = key;
-				}
-
-
-				if(i!=entryCount-1){
-					cout << ",";
-				}
-				if(i==entryCount-1){
-					cout << "]\"";
-				}
-			}
-
-			break;
+		// Just skip the last comma
+		if(i != entry_count-1){
+			cout<<",";
 		}
 
-		case TypeReal:{
-
-			break;
-		}
-
-		case TypeVarChar:{
-
-			break;
-		}
+		// increase the offset such that next key can be extracted in next iteration
+		// key + right child
+		offset += keyLength + sizeof(short);
 	}
+	cout<<"]";
 
-
+	free(key);
 	return 0;
 }
 
-RC printPageEntries(void* page, AttrType type){
-	//get number of index entries
-	short entryCount = 0;
-	getEntryCount(page, entryCount);
+RC printLeafPageEntries(void* page_data, AttrType type){
 
-	short leaf = 0;
-	getLeafFlag(page, leaf);
+	// First <key,rid> starts from this position
+	int offset = METADATA;
 
+	bool dupli_flag = false;
 
-	bool isLeaf = (leaf==LEAF_FLAG) ? true : false;
-	//cout<< "IS leaf : " << isLeaf<<endl;
+	short entry_count = 0;
+	getEntryCount(page_data, entry_count);
+
+	cout << "\"keys\":[";
+
+	// Printing all the <key,rid> pair, Leaf page, duplicates handling too
+	void* key = malloc(PAGE_SIZE);
+	void* prev_key = malloc(PAGE_SIZE);
+	RID rid;
+	int keyLength = 0;
+
+	for(int i=0; i<entry_count; i++){
+		// extract the key from the desired offset
+		extractKey(page_data, offset, type, key, keyLength);
+
+		// Check for duplication after skipping the first iteration
+		if(compareKey(key, prev_key, type) == 0 && i!=0){
+			dupli_flag = true;
+			cout << ",";
+		}
+		else{
+			if(i!=0){
+				dupli_flag = false;
+				cout << "]\"";
+				cout<<",";
+			}
+		}
+
+		if(dupli_flag == false){
+			cout << "\"";
+			// print the key based upon the attribute type
+			printKey(key, type);
+			cout << ":[";
+		}
+
+		// Extract RID and print it
+		memcpy(&rid, (char*)page_data + offset + keyLength, sizeof(RID));
+		cout << "(" << rid.pageNum << "," << rid.slotNum << ")";
+
+		// last entry printing
+		if(i == entry_count - 1){
+			cout << "]\"";
+			break;
+		}
+
+		// increase the offset such that next key can be extracted in next iteration
+		// key + RID
+		offset += keyLength + sizeof(RID);
+
+		// Setting prev_key as currentkey for next iteration of duplicate check
+		memcpy(prev_key, key, keyLength);
+	}
+
+	cout<<"]";
+
+	free(key);
+	free(prev_key);
+	return 0;
+}
+
+RC printPageEntries(void* page, AttrType type, short pageNum){
+
+	short ownpagenum = 0;
+	getOwnPageNumber(page, ownpagenum);
+
+	short leaf_flag = 0;
+	getLeafFlag(page, leaf_flag);
+
+	bool isLeaf = (leaf_flag == LEAF_FLAG) ? true : false;
 
 	if(isLeaf){
-		printLeafPageEntries(page, type, entryCount);
+		short entryCount = 0;
+		getEntryCount(page, entryCount);
+
+		// empty page/deleted page
+		if(entryCount == 0){
+
+			// TODO: What if the Leaf is deleted?
+			// probably return 1 to signal this??? How to Handle?
+			return 1;
+		}
+		else{
+			printLeafPageEntries(page, type);
+		}
 	}
 	else{
-		printNonLeafPageEntries(page, type, entryCount);
+		printNonLeafPageEntries(page, type);
 	}
 
 	return 0;
 
+}
+
+void printTab(int count){
+	for(int i=0; i<count; i++){
+		cout << "\t";
+	}
+}
+
+int myRecursivePrintBTree (IXFileHandle &ixfileHandle, const Attribute &attribute, short root_page_num, int print_count, int visitedkeysCount){
+
+	bool child_flag = false;
+
+	if(root_page_num == -1)
+		return -1;
+
+	// All the recursive work here only
+	void* page_data = malloc(PAGE_SIZE);
+	ixfileHandle.fileHandle.readPage(root_page_num, page_data);
+
+	short left_page_num = 0;
+	short right_page_num = 0;
+	short is_leaf = 0;
+
+	getLeafFlag(page_data, is_leaf);
+	bool leaf_flag = (is_leaf == (short)LEAF_FLAG) ? true : false;
+
+	// Print Root Node Directly without any spaces
+	printPageEntries(page_data, attribute.type, root_page_num);
+
+	if(leaf_flag){
+		child_flag = false;
+		left_page_num = DEFAULT_VAL;
+		right_page_num = DEFAULT_VAL;
+	}
+	else{
+		// NON-LEAF
+		child_flag = true;
+		short nonleafentries = 0;
+		getEntryCount(page_data, nonleafentries);
+
+		void* key = malloc(PAGE_SIZE);
+		int keylennn = 0;
+		int offset = METADATA;
+
+		// Adjusting spaces if we have any one of the children
+		if(child_flag){
+			printTab(print_count);
+			cout << "," << endl;
+			printTab(print_count);
+			cout << "\"children\":[" << endl;
+		}
+
+		for(int i=0; i<nonleafentries; i++){
+
+			// -extract left_page_num and right_page_num from this page_data
+
+			if(i == 0){
+				// First iteration, both left and right
+
+				// set left_page_num for the first time only
+				getLeftPageNum(page_data, left_page_num);
+
+				extractKey(page_data, offset, attribute.type, key, keylennn);
+				// set right_page_num
+				memcpy(&right_page_num, (char*)page_data + offset + keylennn, sizeof(short));
+
+				// key + right child --- increase offset for the next iteration
+				offset += keylennn + sizeof(short);
+
+				// call both recursion, left and right child
+
+				// -Recursively call Left Node
+				// Adjusting spaces before left child call
+				printTab(print_count + 1);
+				cout << "{" ;
+
+				// Left child recursive print call
+				myRecursivePrintBTree(ixfileHandle, attribute, left_page_num, print_count + 1, visitedkeysCount);
+				cout << "}," << endl;
+
+			}
+			else{
+				// Not the first iteration, only right
+				left_page_num = DEFAULT_VAL;
+
+				// set only the right page num
+				extractKey(page_data, offset, attribute.type, key, keylennn);
+				// set right_page_num
+				memcpy(&right_page_num, (char*)page_data + offset + keylennn, sizeof(short));
+
+				// key + right child  --- increase offset for the next iteration
+				offset += keylennn + sizeof(short);
+
+				// call only right child recursion
+			}
+
+
+			// -Recursively call Right Node
+			// Adjusting spaces before right child call
+			printTab(print_count + 1);
+			cout << "{" ;
+
+			// Right child recursive print call
+			if(right_page_num != DEFAULT_VAL)
+				myRecursivePrintBTree(ixfileHandle, attribute, right_page_num, print_count + 1, visitedkeysCount);
+
+			cout << "}";
+
+			if(i != nonleafentries-1){
+				cout << "," << endl;
+			}
+
+			if(left_page_num != DEFAULT_VAL || right_page_num != DEFAULT_VAL){
+				printTab(print_count);
+				//cout << "]";
+			}
+
+			// increasing print_count for the next iteration
+			//print_count ++;
+
+		}// for loop
+		cout << endl << "]";
+
+	}// Non-leaf
+
+	return 0;
 }
 
 void IndexManager::printBtree(IXFileHandle &ixfileHandle, const Attribute &attribute) const {
 
-	short root_page_num = (short)ixfileHandle.fileHandle.getCounter(5);
+	cout << "{" << endl;
 
-	if(root_page_num == NO_ROOT){
+	short rootpagenum = (short) ixfileHandle.fileHandle.getCounter(5);
+	int print_count = 0;
 
-		//check number of pages
-		short numOfPages = (short)ixfileHandle.fileHandle.getNumberOfPages();
+	myRecursivePrintBTree(ixfileHandle, attribute, rootpagenum, print_count, 0);
 
-		if(numOfPages == 0){
-			cout << "{\n}" << endl;
-		}
-		else if(numOfPages == 1){
-			cout << "{" << endl;
-
-			//read page
-			void* pageData = malloc(PAGE_SIZE);
-			ixfileHandle.fileHandle.readPage(0, pageData);
-
-			short entryCount = 0;
-			getEntryCount(pageData, entryCount);
-
-			cout << "\"keys\": [";
-
-			printPageEntries(pageData, attribute.type);
-
-			cout << "\"]" << endl;
-			//"keys": ["Q:[(10,1)]","R:[(11,1)]","S:[(12,1)]"]}
-
-			cout << "}" << endl;
-		}
-
-
-	}
-	else{
-
-	}
-
+	cout << endl << "}" << endl;
 }
 
 IX_ScanIterator::IX_ScanIterator()
@@ -1942,30 +1853,57 @@ IX_ScanIterator::IX_ScanIterator()
 	highKeyInclusive = false;
 	nextKey = NULL;
 	nextKeyPageNum = 0;
+	nextKeyOffset = METADATA;
+	iterationCount = 0;
+	keyLength = 0;
 }
 
 IX_ScanIterator::~IX_ScanIterator()
 {
+
 }
 
+RC getOffsetWithRID(void* page, const void* searchKey, int &keyLength,const RID &searchKeyRid, AttrType type, int &offsetToBeInserted){
 
+	offsetToBeInserted = METADATA;
 
+	//get number of index entries
+	short entryCount = 0;
+	getEntryCount(page, entryCount);
+
+	void* key = malloc(PAGE_SIZE);
+	RID rid1;
+
+	//search for the correct position
+	for(int i=0; i<entryCount; i++){
+		extractKey(page, offsetToBeInserted, type, key, keyLength);
+		memcpy(&rid1, (char*)page + offsetToBeInserted + keyLength, sizeof(RID));
+
+		// compare Rid too
+		if(compareKey(key, searchKey, type) == 0 && (rid1.pageNum == searchKeyRid.pageNum) && (rid1.slotNum == searchKeyRid.slotNum)){
+			break;
+		}
+
+		offsetToBeInserted += keyLength + sizeof(RID);
+	}
+
+	free(key);
+	return 0;
+}
 
 RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
+
+	iterationCount ++;
 
 	// no other matching record exist in the file, end of file reached
 	if(nextKeyPageNum == -1){
 		return -1;
 	}
-//	// Read rootPageNum
-//	short rootPageNum = (short)ixfileHandle->fileHandle.getCounter(5);
-
-	// Traversing to reach the desired leaf page
-//	nextKeyPageNum = traverse(*ixfileHandle, nextKey, true, type, rootPageNum);
 
 	// Creating variables for later use
 	void* page = malloc(PAGE_SIZE);
 	//reading next key page, look for hit in this page only
+	//---------------------------------------------------------
 	ixfileHandle->fileHandle.readPage(nextKeyPageNum, page);
 
 	bool hit_flag = false;
@@ -1975,15 +1913,32 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 
 	// -get the position of nextKey in the page on the basis of inclusiveness boolean of lowKey
 	int position = 0;
-	//-getHitPosition
-	if(compareKey(nextKey, lowKey, type) == 0){
+	//-getHitPosition for the first time only
+	if(iterationCount == 1){
 		// first time comparison if nextKey == lowKey, check for inclusiveness too
 		getPosition(page, nextKey, lowKeyInclusive, type, position);
 	}
 	else{
-		// No need to check for inclusivity of the lower bound, since not first iteration
-		int tempLen = 0;
-		getOffset(page, nextKey, tempLen, type, position);
+		position = nextKeyOffset;
+
+		// check for possible case of deletion while scanning [check for exact match]
+		void* tempkey = malloc(PAGE_SIZE);
+		int tempkeylen = 0;
+		RID temprid;
+
+		extractKey(page, position, type, tempkey, tempkeylen);
+		memcpy(&temprid, (char*) page + position + tempkeylen, sizeof(RID));
+
+		// look for exact matches
+		if((compareKey(tempkey, nextKey, type) == 0) && (temprid.pageNum == nextKeyRid.pageNum) && (temprid.slotNum == nextKeyRid.slotNum)){
+			position = nextKeyOffset;
+		}
+		else{
+			// Dealing with duplicates, getting offset on the basis of <key,rid> pair
+			getOffsetWithRID(page, nextKey, tempkeylen, nextKeyRid, type, position);
+		}
+
+		free(tempkey);
 	}
 
 	// Got the position, now check where position is less than PAGE_SIZE or not
@@ -2020,6 +1975,8 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 
 		if(hit_flag == false){
 			// no hit
+			free(page);
+			free(rightPage);
 			return -1;
 		}
 
@@ -2027,10 +1984,8 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 		//nextKeyPosition
 		int nextposition = position + keyLength + sizeof(RID);
 
-
 		if(nextposition >= PAGE_SIZE){
 			//go to right sibling page
-
 
 			getPointerToRight(page, rightPageNum);
 
@@ -2042,6 +1997,7 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 			else{
 				// right page exists
 				// read the first key of this page and set it as nextKey
+				//------------------------------------------------------------------
 				ixfileHandle->fileHandle.readPage(rightPageNum, rightPage);
 
 				// if right page is deleted page, go to further right sibling
@@ -2053,16 +2009,17 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 					ixfileHandle->fileHandle.readPage(rightPageNum, rightPage);
 				}
 
-
 				extractKey(rightPage, METADATA, type, nextKey, nextKeyLength);
+				memcpy(&nextKeyRid, (char*) rightPage + METADATA + nextKeyLength, sizeof(RID));
 				nextKeyPageNum = rightPageNum;
+				nextKeyOffset = METADATA;
 			}
 		}
 		else{
 
 			// extract nextKey just after the hitKey
 
-			// what if this was the last key, toh extractkey fat jayega.....
+			// what if this was the last key
 			short freespacethispage = 0;
 			getFreeSpace(page, freespacethispage);
 
@@ -2073,9 +2030,11 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 				// Small addition
 				if(rightPageNum == -1){
 					nextKeyPageNum = -1;
+					free(page);
+					free(rightPage);
 					return 0;
 				}
-
+				//----------------------------------------------
 				ixfileHandle->fileHandle.readPage(rightPageNum, rightPage);
 
 				// if right page is deleted page, go to further right sibling
@@ -2084,17 +2043,22 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 
 				if(rightPgEntries == 0){
 					getRightNonEmptyPage(*ixfileHandle, rightPageNum);
+					//--------------------------------------------------
 					ixfileHandle->fileHandle.readPage(rightPageNum, rightPage);
 				}
 
-
 				extractKey(rightPage, METADATA, type, nextKey, nextKeyLength);
+				memcpy(&nextKeyRid, (char*) rightPage + METADATA + nextKeyLength, sizeof(RID));
 				nextKeyPageNum = rightPageNum;
-//
+				nextKeyOffset = METADATA;
 			}
-
-			// bindaas extract karo
-			extractKey(page, nextposition, type, nextKey, nextKeyLength);
+			else{
+				// bindaas extract karo
+				extractKey(page, nextposition, type, nextKey, nextKeyLength);
+				memcpy(&nextKeyRid, (char*) page + nextposition + nextKeyLength, sizeof(RID));
+				getOwnPageNumber(page, nextKeyPageNum);
+				nextKeyOffset = nextposition;
+			}
 		}
 
 	}
@@ -2102,18 +2066,22 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 		// no hit in this page
 		// No corner case, if the matching record is not in this page
 		// That means, end of file reached.
+		free(page);
+		free(rightPage);
 		return -1;
 	}
 
+	free(page);
+	free(rightPage);
 	// Hit found
 	return 0;
+
 }
-
-
 
 RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 {
 	if(findHit(rid, key, attribute->type) == -1){
+		iterationCount = 0;
 		return -1;
 	}
 

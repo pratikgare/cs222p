@@ -88,11 +88,14 @@ class IX_ScanIterator {
 		void* highKey;
 		bool lowKeyInclusive;
 		bool highKeyInclusive;
-		//bool searchEnd;
 
 		void* nextKey;
 		short nextKeyPageNum;
+		int nextKeyOffset;
 		int keyLength;
+		RID nextKeyRid;
+
+		int iterationCount;
 
 		//RC getPosition(void* page, const void* lowKey, bool lowKeyInclusive,AttrType type, int &position);
 
