@@ -17,6 +17,10 @@
 
 using namespace std;
 
+RC printLeafPageEntries(void* page_data, AttrType type);
+RC printNonLeafPageEntries(void* page_data, AttrType type);
+RC printPageEntries(void* page_data, AttrType type, short );
+
 
 IndexManager* IndexManager::_index_manager = 0;
 
@@ -1110,12 +1114,12 @@ RC IndexManager::insertEntry(IXFileHandle &ixfileHandle, const Attribute &attrib
 //	int pg = (int)ixfileHandle.fileHandle.getNumberOfPages();
 //	short* linkedList = (short*)malloc(pg*2);
 //	void* testData = malloc(PAGE_SIZE);
-//	for(int i=0; i<pg; i++){
+//	for(short i=0; i<pg; i++){
 //		ixfileHandle.fileHandle.readPage(i, testData);
 //		getPointerToRight(testData, linkedList[i]);
-//		printMyPageEntries(testData, attribute.type);
+//		printPageEntries(testData, attribute.type, i);
 //	}
-//
+
 //	for(int i=0; i<pg; i++){
 //		cout<<"Pg :"<<i<<" nextPtr: "<<linkedList[i]<<endl;
 //	}
@@ -1634,7 +1638,7 @@ RC printLeafPageEntries(void* page_data, AttrType type){
 		extractKey(page_data, offset, type, key, keyLength);
 
 		// Check for duplication after skipping the first iteration
-		if(compareKey(key, prev_key, type) == 0 && i!=0){
+		if(i!=0 && compareKey(key, prev_key, type) == 0){
 			dupli_flag = true;
 			cout << ",";
 		}
