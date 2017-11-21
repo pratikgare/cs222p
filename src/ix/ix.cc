@@ -1,9 +1,11 @@
 
 #include "ix.h"
+
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <cstdio>
+
+#include "../rbf/pfm.h"
 
 // My macros flag
 #define NOT_DELETED 0
@@ -1532,6 +1534,7 @@ RC IndexManager::scan(IXFileHandle &ixfileHandle,
 
 }
 
+
 RC printKey(void* key, AttrType type){
 	switch(type){
 		case TypeInt:{
@@ -1562,6 +1565,7 @@ RC printKey(void* key, AttrType type){
 			// print that string
 			cout << mykey;
 
+			free(keyvalue);
 			break;
 		}
 	}
@@ -1828,7 +1832,18 @@ int myRecursivePrintBTree (IXFileHandle &ixfileHandle, const Attribute &attribut
 		}// for loop
 		cout << endl << "]";
 
+
+		if(key){
+			free(key);
+			key = NULL;
+		}
+
 	}// Non-leaf
+
+	if(page_data){
+		free(page_data);
+		page_data = NULL;
+	}
 
 	return 0;
 }
@@ -1847,8 +1862,8 @@ void IndexManager::printBtree(IXFileHandle &ixfileHandle, const Attribute &attri
 
 IX_ScanIterator::IX_ScanIterator()
 {
-//	lowKey = NULL;
-//	highKey = NULL;
+	lowKey = NULL;
+	highKey = NULL;
 	lowKeyInclusive = false;
 	highKeyInclusive = false;
 	nextKey = NULL;
@@ -1860,7 +1875,18 @@ IX_ScanIterator::IX_ScanIterator()
 
 IX_ScanIterator::~IX_ScanIterator()
 {
-
+	if(lowKey){
+		free(lowKey);
+		lowKey = NULL;
+	}
+	if(highKey){
+		free(highKey);
+		highKey = NULL;
+	}
+	if(nextKey){
+		free(nextKey);
+		nextKey = NULL;
+	}
 }
 
 RC getOffsetWithRID(void* page, const void* searchKey, int &keyLength,const RID &searchKeyRid, AttrType type, int &offsetToBeInserted){
@@ -2090,8 +2116,18 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 
 RC IX_ScanIterator::close()
 {
-
-	//TODO: complete this function
+	if(lowKey){
+		free(lowKey);
+		lowKey = NULL;
+	}
+	if(highKey){
+		free(highKey);
+		highKey = NULL;
+	}
+	if(nextKey){
+		free(nextKey);
+		nextKey = NULL;
+	}
 
 	return 0;
 
