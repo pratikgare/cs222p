@@ -92,6 +92,8 @@ class IX_ScanIterator {
 		void* nextKey;
 		short nextKeyPageNum;
 		int nextKeyOffset;
+		void* nextKeyBuffer;
+		bool nextKeyBufferFlag;
 		int keyLength;
 		RID nextKeyRid;
 

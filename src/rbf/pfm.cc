@@ -12,6 +12,8 @@ RC setCounterValue(FILE* file, int, int);
 bool incrementCounter(FILE* file, int mode);
 bool createHiddenPage(FILE* file);
 bool fileExists(const string &fileName);
+RC extractHiddenPage(FILE* file, void* page);
+RC putHiddenPage(FILE* file, void* page);
 
 //Encryption key - 11694 (my D.O.B. - 01/16/1994). It can be anything depending upon the user requirement.
 int encryptKey = 11694;
@@ -109,35 +111,26 @@ int getCounterValue(FILE* file, int mode){
 	return value;
 }
 
+RC RWACounterValues(FILE* file, unsigned &readCounter, unsigned &writeCounter, unsigned &appendCounter){
 
-int getCounterValues(FILE* file, unsigned &readCounter, unsigned &writeCounter, unsigned &appendCounter){
-	// The values of mode can only be: 0- EncryptionKey, 1- read counter, 2- write counter, 3-append counter
-	// 4-numberofrecords, 5-rootNodePage
+	fseek(file, 1*sizeof(unsigned), SEEK_SET);
+	void* counters = malloc(3*sizeof(unsigned));
+	fread(counters, 3*sizeof(unsigned), 1, file);
 
-	void* buffer = malloc(3*sizeof(unsigned));
-
-	// Get the contents of the file into a buffer
 	int offset = 0;
 
-	// setting ptr to begin
-	fseek(file, sizeof(unsigned), SEEK_SET);
-
-
-	// Reading hidden page data from the file.
-	fread(buffer, 3*sizeof(unsigned), 1, file);
-
-	memcpy(&readCounter, (char*)buffer+offset, sizeof(unsigned));
+	memcpy(&readCounter, (char*)counters + offset, sizeof(unsigned));
 	offset += sizeof(unsigned);
 
-	memcpy(&writeCounter, (char*)buffer+offset, sizeof(unsigned));
+	memcpy(&writeCounter, (char*)counters + offset, sizeof(unsigned));
 	offset += sizeof(unsigned);
 
-	memcpy(&appendCounter, (char*)buffer+offset, sizeof(unsigned));
+	memcpy(&appendCounter, (char*)counters + offset, sizeof(unsigned));
 	offset += sizeof(unsigned);
 
-	free(buffer);
-
+	free(counters);
 	return 0;
+
 }
 
 RC setCounterValue(FILE* file, int mode, int val1){
@@ -190,7 +183,11 @@ bool createHiddenPage(FILE* file){
 	fflush(file);
 
 	// Free the dynamic allocated heap memory to prevent the memory leak.
-	free(hiddenPage);
+	if(hiddenPage){
+		free(hiddenPage);
+		hiddenPage = NULL;
+	}
+
 
 	return true;
 }
@@ -384,7 +381,8 @@ unsigned FileHandle::getNumberOfPages()
 
 RC FileHandle::collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount)
 {
-	getCounterValues(handle, readPageCount, writePageCount, appendPageCount);
+
+	RWACounterValues(handle, readPageCount, writePageCount, appendPageCount);
 
     return 0;
 }
@@ -405,9 +403,34 @@ RC FileHandle::setCounter(int mode, int value){
 	return setCounterValue(handle, 5, value);
 }
 
-RC FileHandle::getCounter(int mode)
+int FileHandle::getCounter(int mode)
 {
 	return(getCounterValue(handle, mode));
 }
 
+RC extractHiddenPage(FILE* file, void* page){
 
+	fseek(file, 0, SEEK_SET);
+	fread(page, 30, 1, file);
+	return 0;
+
+}
+
+RC FileHandle::extractHidden(void* hidden_page){
+	extractHiddenPage(handle, hidden_page);
+	return 0;
+}
+
+RC putHiddenPage(FILE* file, void* page){
+
+	fseek(file, 0, SEEK_SET);
+	fwrite(page, 30, 1, file);
+	fflush(file);
+	return 0;
+
+}
+
+RC FileHandle::putHiddenPageIntoDisk(void* hidden_page){
+	putHiddenPage(handle, hidden_page);
+	return 0;
+}
