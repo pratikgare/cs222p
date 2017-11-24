@@ -84,21 +84,25 @@ class IX_ScanIterator {
 		// My functionalities
 		IXFileHandle *ixfileHandle;
 		const Attribute *attribute;
-
 		void* lowKey;
 		void* highKey;
-		void* nextKey;
-		short nextKeyPageNum;
-
 		bool lowKeyInclusive;
 		bool highKeyInclusive;
 
-		// This keyLength is associated to hit returned key
+		void* nextKey;
+		short nextKeyPageNum;
+		int nextKeyOffset;
+		void* nextKeyBuffer;
+		bool nextKeyBufferFlag;
 		int keyLength;
+		RID nextKeyRid;
 
-		RC getPosition(void* page, const void* lowKey, bool lowKeyInclusive,AttrType type, int &position);
+		int iterationCount;
 
-		RC findHit (RID &rid, void* key, AttrType);
+		//RC getPosition(void* page, const void* lowKey, bool lowKeyInclusive,AttrType type, int &position);
+
+		RC findHit(RID &rid, void* key, AttrType type);
+
 
 		// Constructor
         IX_ScanIterator();

@@ -250,9 +250,9 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 
 	}
 
-	free(nullBytes);
-	free(recordBuffer);
-	free(data);
+	//free(nullBytes);
+	//free(recordBuffer);
+	//free(data);
 
 	return 0;
 }
@@ -416,7 +416,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	void* value = malloc(4096);
 
 	if(rbfm->openFile(TABLES_TABLE, fileHandle) != 0){
-		free(value);
+		//free(value);
 		return -1;
 	}
 
@@ -540,9 +540,9 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 		return -1;
 	}
 
-	free(value);
-	free(data);
-	free(buffer);
+	//free(value);
+	//free(data);
+	//free(buffer);
     return 0;
 }
 

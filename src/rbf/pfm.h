@@ -51,13 +51,16 @@ public:
     RC writePage(PageNum pageNum, const void *data);                      // Write a specific page
     RC appendPage(const void *data);                                      // Append a specific page
     unsigned getNumberOfPages();                                          // Get the number of pages in the file
-    RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);  // Put the current counter values into variables
 
-    // My fumctions
+    // My functions
     RC increaseCounter(int mode);
     RC decreaseCounter(int mode);
-    unsigned getCounter(int mode);
+    int getCounter(int mode);
     RC setCounter(int mode, int value);
+
+    RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);
+    RC extractHidden(void* hidden_page);
+    RC putHiddenPageIntoDisk(void* hidden_page);
 
 }; 
 
