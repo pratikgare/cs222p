@@ -22,7 +22,7 @@ public:
     RC openFile      (const string &fileName, FileHandle &fileHandle);    // Open a file
     RC closeFile     (FileHandle &fileHandle);                            // Close a file
 
-protected:
+  protected:
     PagedFileManager();                                                   // Constructor
     ~PagedFileManager();                                                  // Destructor
 
@@ -35,10 +35,12 @@ class FileHandle
 {
 public:
     // variables to keep the counter for each operation
-    unsigned readPageCounter;
-    unsigned writePageCounter;
-    unsigned appendPageCounter;
-    unsigned numberofrecords;
+	int encrypt;
+	int readPageCounter;
+	int writePageCounter;
+	int appendPageCounter;
+	int numberofrecords;
+	int rootPageNum;
 
     bool isOpen;
 
@@ -50,17 +52,23 @@ public:
     RC readPage(PageNum pageNum, void *data);                             // Get a specific page
     RC writePage(PageNum pageNum, const void *data);                      // Write a specific page
     RC appendPage(const void *data);                                      // Append a specific page
-    unsigned getNumberOfPages();                                          // Get the number of pages in the file
+    RC getNumberOfPages();                                          // Get the number of pages in the file
+    RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);
+
+
+    // My additions
+    void* hiddenPageChunk;
 
     // My functions
     RC increaseCounter(int mode);
     RC decreaseCounter(int mode);
-    int getCounter(int mode);
+    RC getCounter(int mode);
     RC setCounter(int mode, int value);
+    RC extractHidden();
+    RC extractCountersFromHidden();
+    RC putCountersintoHidden();
+    RC putHiddenPageIntoDisk();
 
-    RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);
-    RC extractHidden(void* hidden_page);
-    RC putHiddenPageIntoDisk(void* hidden_page);
 
 }; 
 
