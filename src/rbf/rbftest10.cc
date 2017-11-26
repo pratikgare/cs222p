@@ -52,9 +52,6 @@ int RBFTest_10(RecordBasedFileManager *rbfm) {
         for (int i = 0; i < numRecords; i++) {
             ridsFileRead.read(reinterpret_cast<char*>(&pageNum), sizeof(unsigned));
             ridsFileRead.read(reinterpret_cast<char*>(&slotNum), sizeof(unsigned));
-            if (i % 1000 == 0) {
-                cout << "loaded RID #" << i << ": " << pageNum << ", " << slotNum << endl;
-            }
             tempRID.pageNum = pageNum;
             tempRID.slotNum = slotNum;
             rids.push_back(tempRID);
@@ -73,9 +70,6 @@ int RBFTest_10(RecordBasedFileManager *rbfm) {
         sizesFileRead.seekg(0,ios::beg);
         for (int i = 0; i < numRecords; i++) {
             sizesFileRead.read(reinterpret_cast<char*>(&tempSize), sizeof(int));
-            if (i % 1000 == 0) {
-                cout << "loaded Sizes #" << i << ": " << tempSize << endl;
-            }
             sizes.push_back(tempSize);
         }
         sizesFileRead.close();
@@ -94,11 +88,6 @@ int RBFTest_10(RecordBasedFileManager *rbfm) {
         memset(returnedData, 0, 1000);
         rc = rbfm->readRecord(fileHandle, recordDescriptor, rids[i], returnedData);
         assert(rc == success && "Reading a record should not fail.");
-        
-        if (i % 1000 == 0) {
-            cout << endl << "Returned Data:" << endl;
-            rbfm->printRecord(recordDescriptor, returnedData);
-        }
 
         int size = 0;
         prepareLargeRecord(recordDescriptor.size(), nullsIndicator, i, record, &size);

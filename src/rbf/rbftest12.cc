@@ -54,9 +54,6 @@ int RBFTest_12(RecordBasedFileManager *rbfm) {
         for (int i = 0; i < numRecords; i++) {
             ridsFileRead.read(reinterpret_cast<char*>(&pageNum), sizeof(unsigned));
             ridsFileRead.read(reinterpret_cast<char*>(&slotNum), sizeof(unsigned));
-            if (i % 1000 == 0) {
-                cout << "loaded RID #" << i << ": " << pageNum << ", " << slotNum << endl;
-            }
             tempRID.pageNum = pageNum;
             tempRID.slotNum = slotNum;
             rids.push_back(tempRID);

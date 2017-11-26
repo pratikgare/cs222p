@@ -206,6 +206,8 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 		fileHandle.putHiddenPageIntoDisk();
 
 		fclose(fileHandle.handle);
+
+		fileHandle.isOpen = false;
 		return 0;
 	}
     return -1;
@@ -314,25 +316,28 @@ RC FileHandle::extractCountersFromHidden(){
 
 	// encryptKey (0-4 bytes)
 	int offset = 0;
-	memcpy(&encrypt, (char*)hiddenPageChunk+offset, sizeof(unsigned));
-	offset += sizeof(unsigned);
+	memcpy(&encrypt, (char*)hiddenPageChunk+offset, sizeof(int));
+	offset += sizeof(int);
 
 	// read (4-8 bytes)
-	memcpy(&readPageCounter, (char*)hiddenPageChunk+offset, sizeof(unsigned));
-	offset += sizeof(unsigned);
+	memcpy(&readPageCounter, (char*)hiddenPageChunk+offset, sizeof(int));
+	offset += sizeof(int);
 
 	// write (8-12 bytes)
-	memcpy(&writePageCounter, (char*)hiddenPageChunk+offset, sizeof(unsigned));
-	offset += sizeof(unsigned);
+	memcpy(&writePageCounter, (char*)hiddenPageChunk+offset, sizeof(int));
+	offset += sizeof(int);
 
 	// append (12-16 bytes)
-	memcpy(&appendPageCounter, (char*)hiddenPageChunk+offset, sizeof(unsigned));
-	offset += sizeof(unsigned);
+	memcpy(&appendPageCounter, (char*)hiddenPageChunk+offset, sizeof(int));
+	offset += sizeof(int);
+
+	// append (16-20 bytes)
+	memcpy(&numberofrecords, (char*)hiddenPageChunk+offset, sizeof(int));
+	offset += sizeof(int);
 
 	// root (20-24 bytes)
-	offset += sizeof(unsigned);
-	memcpy(&rootPageNum, (char*)hiddenPageChunk+offset, sizeof(unsigned));
-	offset += sizeof(unsigned);
+	memcpy(&rootPageNum, (char*)hiddenPageChunk+offset, sizeof(int));
+	offset += sizeof(int);
 
 	return 0;
 }
@@ -353,8 +358,11 @@ RC FileHandle::putCountersintoHidden(){
 	memcpy((char*)hiddenPageChunk+offset, &appendPageCounter, sizeof(int));
 	offset += sizeof(int);
 
-	// root (20-24 bytes)
+	// numberofrecords (16-20 bytes)
+	memcpy((char*)hiddenPageChunk+offset, &numberofrecords, sizeof(int));
 	offset += sizeof(int);
+
+	// root (20-24 bytes)
 	memcpy((char*)hiddenPageChunk+offset, &rootPageNum, sizeof(int));
 	offset += sizeof(int);
 
