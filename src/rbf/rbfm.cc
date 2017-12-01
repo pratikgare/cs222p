@@ -1775,8 +1775,8 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data){
 
 RC RBFM_ScanIterator::close(){
 
-//	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
-//	return rbfm->closeFile(fileHandle);
+	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
+	return rbfm->closeFile(fileHandle);
 //
 //	if(value){
 //		free(value);
