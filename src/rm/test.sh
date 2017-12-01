@@ -30,9 +30,5 @@ make
 ./rmtest_p7
 ./rmtest_p8
 ./rmtest_p9
-./rmtest_extra_1
-./rmtest_extra_2
-./rmtest_pex1
-./rmtest_pex2
 ./rmtest_delete_tables
 

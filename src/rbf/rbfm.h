@@ -38,52 +38,32 @@ typedef enum { EQ_OP = 0, // no condition// =
            NO_OP       // no condition
 } CompOp;
 
-
-/********************************************************************************
-The scan iterator is NOT required to be implemented for the part 1 of the project 
-********************************************************************************/
-
 # define RBFM_EOF (-1)  // end of a scan operator
 
-// RBFM_ScanIterator is an iterator to go through records
-// The way to use it is like the following:
-//  RBFM_ScanIterator rbfmScanIterator;
-//  rbfm.open(..., rbfmScanIterator);
-//  while (rbfmScanIterator(rid, data) != RBFM_EOF) {
-//    process the data;
-//  }
-//  rbfmScanIterator.close();
+
 
 class RBFM_ScanIterator {
 public:
-	void *value;
-	AttrType conditionAttributeType;
+  RBFM_ScanIterator();
+  ~RBFM_ScanIterator();
 
-	FileHandle fileHandle;
-	vector<Attribute> recordDescriptor;
-	string conditionAttribute;
-	CompOp compOp;
-	vector<string> attributeNames;
-	RID rid_next;
 
-	RBFM_ScanIterator(){
-		compOp = NO_OP;
-		conditionAttributeType = TypeInt;
-		value = NULL;
-		rid_next.pageNum = 0;
-		rid_next.slotNum = 0;
-	};
-	  ~RBFM_ScanIterator() {};
+  // Scan_Iterator variables
+  FileHandle fileHandle;
+  vector<Attribute> recordDescriptor;
+  string conditionAttribute;
+  AttrType conditionAttributeType;
+  CompOp compOp;
+  void *value;
+  vector<string> attributeNames;
+  RID next_rid;
+  bool end_of_file;
 
-  // Never keep the results in the memory. When getNextRecord() is called, 
-  // a satisfying record needs to be fetched from the file.
-  // "data" follows the same format as RecordBasedFileManager::insertRecord().
+  RC findHit(RID &rid, void *data);
+  bool checkCondition(void* page_data, short &slotOffset, short &slotLength);
+
   RC getNextRecord(RID &rid, void *data);
   RC close();
-
-  bool checkForCondition(void* val_conditionAttribute, const CompOp compOp, void* value, AttrType typeattrr);
-  AttrType getAttributeType(const vector<Attribute> &recordDescriptor, const string &AttributeName);
-
 };
 
 
@@ -100,29 +80,10 @@ public:
   
   RC closeFile(FileHandle &fileHandle);
 
-  //  Format of the data passed into the function is the following:
-  //  [n byte-null-indicators for y fields] [actual value for the first field] [actual value for the second field] ...
-  //  1) For y fields, there is n-byte-null-indicators in the beginning of each record.
-  //     The value n can be calculated as: ceil(y / 8). (e.g., 5 fields => ceil(5 / 8) = 1. 12 fields => ceil(12 / 8) = 2.)
-  //     Each bit represents whether each field value is null or not.
-  //     If k-th bit from the left is set to 1, k-th field value is null. We do not include anything in the actual data part.
-  //     If k-th bit from the left is set to 0, k-th field contains non-null values.
-  //     If there are more than 8 fields, then you need to find the corresponding byte first, 
-  //     then find a corresponding bit inside that byte.
-  //  2) Actual data is a concatenation of values of the attributes.
-  //  3) For Int and Real: use 4 bytes to store the value;
-  //     For Varchar: use 4 bytes to store the length of characters, then store the actual characters.
-  //  !!! The same format is used for updateRecord(), the returned data of readRecord(), and readAttribute().
-  // For example, refer to the Q8 of Project 1 wiki page.
   RC insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid);
 
   RC readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data);
-  
-  // This method will be mainly used for debugging/testing. 
-  // The format is as follows:
-  // field1-name: field1-value  field2-name: field2-value ... \n
-  // (e.g., age: 24  height: 6.1  salary: 9000
-  //        age: NULL  height: 7.5  salary: 7500)
+
   RC printRecord(const vector<Attribute> &recordDescriptor, const void *data);
 
 /******************************************************************************************************************************************************************
@@ -139,42 +100,12 @@ IMPORTANT, PLEASE READ: All methods below this comment (other than the construct
   RC scan(FileHandle &fileHandle,
       const vector<Attribute> &recordDescriptor,
       const string &conditionAttribute,
-      const CompOp compOp,                  // comparison type such as "<" and "="
+      const CompOp compOp,                  // comparision type such as "<" and "="
       const void *value,                    // used in the comparison
       const vector<string> &attributeNames, // a list of projected attributes
       RBFM_ScanIterator &rbfm_ScanIterator);
 
-  // My variables
-  	 vector<RID> pointedrids;
-  	 vector<RID> truerids;
-
 public:
-
-  // My functions
-  RC insertRecordInGivenBuffer(char *pageBuffer, char* record, int, int* slot);
-  RC createRecord(const vector<Attribute> &recordDescriptor, const void *data, char *record, int *recordSize, int* ptrs, int* actualdata);
-  RC shiftLeft(char* page_data, short int, short int, short int, short int);
-  RC shiftRight(char* page_data, short int, short int, short int, short int);
-  RC updateSlotDirectory(char* page_data, const RID &rid, int, int, short int);
-  RC createHole(char* page_data, short int, short int, short int, short int, short int);
-  int getHighestslotOffsetLocation(char* pageBuffer);
-  int deletedSlotLocation(char* pageBuffer);
-  RC getRecordInMyFormat(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, RID& rid, void *data);
-  RC setConditionAttributeType(const vector<Attribute> &recordDescriptor, const string &conditionAttribute, RBFM_ScanIterator &rbfm_ScanIterator);
-  RC setValueForCondition(const void *value, RBFM_ScanIterator &rbfm_ScanIterator);
-
-  RC createHashMapPointedrids(RID rid);
-  bool checkridsInHashMap(RID rid);
-  RC clearHashMap();
-
-  RC createTrueHashMap();
-  bool checkridsInTrueHashMap(RID rid);
-
-  RC insertForwardRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid);
-
-
-
-
 
 protected:
   RecordBasedFileManager();

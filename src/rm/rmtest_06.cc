@@ -50,7 +50,6 @@ RC TEST_RM_6(const string &tableName)
     nullAttributesIndicatorActualSize = getActualByteForNullsIndicator(attributes.size());
     while(rmsi.getNextTuple(rid, returnedData) != RM_EOF)
     {
-        // cout << "Returned Age: " << *(int *)((char *)returnedData+nullAttributesIndicatorActualSize) << endl;
         if (ages.find(*(int *)((char *)returnedData+nullAttributesIndicatorActualSize)) == ages.end())
         {
             cout << "***** [FAIL] Test Case 6 Failed *****" << endl << endl;

@@ -563,9 +563,6 @@ RC writeIntoPageBuffer(void* page, const void* entry, const int &entrySize, cons
 
 	shiftRightAndInsertEntry(page, entry, entrySize, offsetToBeInserted);
 
-	//updating the metadata
-	short value = 0;
-
 	// update number of entries
 	incrementEntryCount(page);
 
@@ -1515,8 +1512,8 @@ RC IndexManager::scan(IXFileHandle &ixfileHandle,
 		return -1;
 	}
 
-	ix_ScanIterator.ixfileHandle = &ixfileHandle;
-	ix_ScanIterator.attribute = &attribute;
+	ix_ScanIterator.ixfileHandle = ixfileHandle;
+	ix_ScanIterator.attribute = attribute;
 
 	// Never free these mallocs, this should be free in close of the iterator.
 	ix_ScanIterator.lowKey = malloc(PAGE_SIZE);
@@ -1975,7 +1972,7 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 	// my addition of keeping buffer everytime to improve the scan speed
 	if(nextKeyBufferFlag == false){
 		//reading next key page, look for hit in this page only
-		ixfileHandle->fileHandle.readPage(nextKeyPageNum, page);
+		ixfileHandle.fileHandle.readPage(nextKeyPageNum, page);
 	}
 	else{
 		memcpy(page, nextKeyBuffer, PAGE_SIZE);
@@ -2074,7 +2071,7 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 			else{
 				// right page exists
 				// read the first key of this page and set it as nextKey
-				ixfileHandle->fileHandle.readPage(rightPageNum, rightPage);
+				ixfileHandle.fileHandle.readPage(rightPageNum, rightPage);
 
 				// if right page is deleted page, go to further right sibling
 				short rightPgEntries = 0;
@@ -2082,7 +2079,7 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 
 				if(rightPgEntries == 0){
 
-					getRightNonEmptyPageWithPageBuffer(*ixfileHandle, rightPageNum, rightPage);
+					getRightNonEmptyPageWithPageBuffer(ixfileHandle, rightPageNum, rightPage);
 
 				}
 
@@ -2117,7 +2114,7 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 					return 0;
 				}
 
-				ixfileHandle->fileHandle.readPage(rightPageNum, rightPage);
+				ixfileHandle.fileHandle.readPage(rightPageNum, rightPage);
 
 				// if right page is deleted page, go to further right sibling
 				short rightPgEntries = 0;
@@ -2125,7 +2122,7 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 
 				if(rightPgEntries == 0){
 
-					getRightNonEmptyPageWithPageBuffer(*ixfileHandle, rightPageNum, rightPage);
+					getRightNonEmptyPageWithPageBuffer(ixfileHandle, rightPageNum, rightPage);
 
 				}
 
@@ -2170,7 +2167,7 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 
 RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 {
-	if(findHit(rid, key, attribute->type) == -1){
+	if(findHit(rid, key, attribute.type) == -1){
 		iterationCount = 0;
 		return -1;
 	}

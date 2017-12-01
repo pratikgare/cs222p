@@ -82,8 +82,8 @@ class IX_ScanIterator {
     public:
 
 		// My functionalities
-		IXFileHandle *ixfileHandle;
-		const Attribute *attribute;
+		IXFileHandle ixfileHandle;
+		Attribute attribute;
 		void* lowKey;
 		void* highKey;
 		bool lowKeyInclusive;

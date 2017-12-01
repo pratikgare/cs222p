@@ -196,9 +196,9 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 
 
 	if(rbfm->closeFile(fileHandle)!=0){
-		////free(nullBytes);
-		//free(recordBuffer);
-		//free(data);
+		//////free(nullBytes);
+		////free(recordBuffer);
+		////free(data);
 		return -1;
 	}
 
@@ -206,9 +206,9 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 	sysFile = "Columns";
 
 	if(rbfm->openFile(sysFile, fileHandle) != 0){
-		//free(nullBytes);
-		//free(recordBuffer);
-		//free(data);
+		////free(nullBytes);
+		////free(recordBuffer);
+		////free(data);
 		return -1;
 	}
 
@@ -225,9 +225,9 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 
 	//Close the Columns file
 	if(rbfm->closeFile(fileHandle)!=0){
-		//free(nullBytes);
-		//free(recordBuffer);
-		//free(data);
+		////free(nullBytes);
+		////free(recordBuffer);
+		////free(data);
 		return -1;
 	}
 
@@ -242,17 +242,17 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 
 	if(flag == 0){
 		if(rbfm->createFile(fileName) != 0){
-			//free(nullBytes);
-			//free(recordBuffer);
-			//free(data);
+			////free(nullBytes);
+			////free(recordBuffer);
+			////free(data);
 			return -1;
 		}
 
 	}
 
-	//free(nullBytes);
-	//free(recordBuffer);
-	//free(data);
+	////free(nullBytes);
+	////free(recordBuffer);
+	////free(data);
 
 	return 0;
 }
@@ -278,7 +278,7 @@ RC RelationManager::deleteTable(const string &tableName)
 	void* value = malloc(4096);
 
 	if(rbfm->openFile(TABLES_TABLE, fileHandle) != 0){
-		//free(value);
+		////free(value);
 		return -1;
 	}
 
@@ -299,7 +299,7 @@ RC RelationManager::deleteTable(const string &tableName)
 	attrNames.push_back(sysAttr[0].name);
 
 	if(rbfm->scan(fileHandle, sysAttr, sysAttr[1].name, EQ_OP, value, attrNames, rmsi.rbfmsi) != 0){
-		//free(value);
+		////free(value);
 		return -1;
 	}
 
@@ -307,8 +307,8 @@ RC RelationManager::deleteTable(const string &tableName)
 	void* data = malloc(4096);
 
 	if(rmsi.rbfmsi.getNextRecord(rid, data) !=0 ){
-		//free(value);
-		//free(data);
+		////free(value);
+		////free(data);
 		return -1;
 	}
 
@@ -318,15 +318,15 @@ RC RelationManager::deleteTable(const string &tableName)
 
 	//delete the entry from tables table
 	if(rbfm->deleteRecord(fileHandle, sysAttr, rid) != 0){
-		//free(value);
-		//free(data);
+		////free(value);
+		////free(data);
 		return -1;
 	}
 
 	//close the file
 	if(rbfm->closeFile(fileHandle) != 0){
-		//free(value);
-		//free(data);
+		////free(value);
+		////free(data);
 		return -1;
 	}
 
@@ -339,8 +339,8 @@ RC RelationManager::deleteTable(const string &tableName)
 	
 
 	if(rbfm->openFile(COLUMNS_TABLE, fileHandle) != 0){
-		//free(value);
-		//free(data);
+		////free(value);
+		////free(data);
 		return -1;
 	}
 
@@ -356,12 +356,12 @@ RC RelationManager::deleteTable(const string &tableName)
 	memcpy(tIdBuffer, &tId, sizeof(int));
 
 	if(rbfm->scan(fileHandle, sysAttr, sysAttr[0].name, EQ_OP, tIdBuffer, attrNames, rmsi.rbfmsi) != 0){
-		//free(value);
-		//free(data);
-		//free(tIdBuffer);
+		////free(value);
+		////free(data);
+		////free(tIdBuffer);
 		return -1;
 	}
-	//free(tIdBuffer);
+	////free(tIdBuffer);
 
 
 
@@ -370,9 +370,9 @@ RC RelationManager::deleteTable(const string &tableName)
 
 	while(rmsi.rbfmsi.getNextRecord(rid, buffer) != -1){
 		if(rbfm->deleteRecord(fileHandle, sysAttr, rid) != 0){
-			//free(value);
-			//free(data);
-			//free(buffer);
+			////free(value);
+			////free(data);
+			////free(buffer);
 			return -1;
 		}
 
@@ -381,15 +381,15 @@ RC RelationManager::deleteTable(const string &tableName)
 
 	//delete the file created for that tablename
 	if(rbfm->destroyFile(tableName) != 0){
-		//free(value);
-		//free(data);
-		//free(buffer);
+		////free(value);
+		////free(data);
+		////free(buffer);
 		return -1;
 	}
 
-	//free(value);
-	//free(data);
-	//free(buffer);
+	////free(value);
+	////free(data);
+	////free(buffer);
     return 0;
 }
 
@@ -416,7 +416,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	void* value = malloc(4096);
 
 	if(rbfm->openFile(TABLES_TABLE, fileHandle) != 0){
-		//free(value);
+		////free(value);
 		return -1;
 	}
 
@@ -437,7 +437,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	attrNames.push_back(sysAttr[0].name);
 
 	if(rbfm->scan(fileHandle, sysAttr, sysAttr[1].name, EQ_OP, value, attrNames, rmsi.rbfmsi) != 0){
-		//free(value);
+		////free(value);
 		return -1;
 	}
 
@@ -445,8 +445,8 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	void* data = malloc(4096);
 
 	if(rmsi.rbfmsi.getNextRecord(rid, data) == -1 ){
-		//free(value);
-		//free(data);
+		////free(value);
+		////free(data);
 		return -1;
 	}
 
@@ -455,8 +455,8 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	memcpy(&tId, (char*)data+sizeof(char), sizeof(int));
 
 	if(rbfm->closeFile(fileHandle) != 0){
-		//free(value);
-		//free(data);
+		////free(value);
+		////free(data);
 		return -1;
 	}
 
@@ -464,8 +464,8 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	
 
 	if(rbfm->openFile(COLUMNS_TABLE, fileHandle) != 0){
-		//free(value);
-		//free(data);
+		////free(value);
+		////free(data);
 		return -1;
 	}
 
@@ -486,12 +486,12 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	memcpy(tIdBuffer, &tId, sizeof(int));
 
 	if(rbfm->scan(fileHandle, sysAttrCol, sysAttrCol[0].name, EQ_OP, tIdBuffer, attrNamesCol, rmsi.rbfmsi) != 0){
-		//free(value);
-		//free(data);
-		//free(tIdBuffer);
+		////free(value);
+		////free(data);
+		////free(tIdBuffer);
 		return -1;
 	}
-	//free(tIdBuffer);
+	////free(tIdBuffer);
 
 
 
@@ -530,19 +530,19 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 		attribute.length = length;
 
 		attrs.push_back(attribute);
-		//free(name);
+		////free(name);
 	}
 
 	if(rbfm->closeFile(fileHandle) != 0){
-		//free(value);
-		//free(data);
-		//free(buffer);
+		////free(value);
+		////free(data);
+		////free(buffer);
 		return -1;
 	}
 
-	//free(value);
-	//free(data);
-	//free(buffer);
+	////free(value);
+	////free(data);
+	////free(buffer);
     return 0;
 }
 

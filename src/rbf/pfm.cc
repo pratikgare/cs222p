@@ -36,8 +36,8 @@ PagedFileManager::PagedFileManager()
 PagedFileManager::~PagedFileManager()
 {
 	if(_pf_manager){
-		//delete _pf_manager;
-		//_pf_manager = NULL;
+		delete _pf_manager;
+		_pf_manager = NULL;
 	}
 
 }
@@ -376,10 +376,10 @@ RC FileHandle::putHiddenPageIntoDisk(){
 	fwrite(hiddenPageChunk, HPC_CHUNK, 1, handle);
 	fflush(handle);
 
-	if(hiddenPageChunk){
-		free(hiddenPageChunk);
-		hiddenPageChunk = NULL;
-	}
+//	if(hiddenPageChunk){
+//		free(hiddenPageChunk);
+//		hiddenPageChunk = NULL;
+//	}
 
 	return 0;
 
