@@ -5,35 +5,45 @@
 #include <string>
 #include <vector>
 
+#include "../rbf/pfm.h"
 #include "../rbf/rbfm.h"
+#include "../ix/ix.h"
 
 using namespace std;
 
 # define RM_EOF (-1)  // end of a scan operator
 
-// RM_ScanIterator is an iteratr to go through tuples
+// RM_ScanIterator is an iterator to go through tuples
 class RM_ScanIterator {
 public:
-  RM_ScanIterator() {
-  };
+  RM_ScanIterator() {};
   ~RM_ScanIterator() {};
+
+  FileHandle fileHandle;
+  RBFM_ScanIterator rbfmsi;
 
   // "data" follows the same format as RelationManager::insertTuple()
   RC getNextTuple(RID &rid, void *data);
   RC close();
-  FileHandle fileHandle;
-  RBFM_ScanIterator rbfmsi;
 };
 
+
+// RM_IndexScanIterator is an iterator to go through index entries
+class RM_IndexScanIterator {
+ public:
+  RM_IndexScanIterator() {};  	// Constructor
+  ~RM_IndexScanIterator() {}; 	// Destructor
+
+  // "key" follows the same format as in IndexManager::insertEntry()
+  RC getNextEntry(RID &rid, void *key) {return RM_EOF;};  	// Get next matching entry
+  RC close() {return -1;};             			// Terminate index scan
+};
 
 
 // Relation Manager
 class RelationManager
 {
 public:
-
-	static string fileExtension;
-
   static RelationManager* instance();
 
   RC createCatalog();
@@ -69,6 +79,19 @@ public:
       const vector<string> &attributeNames, // a list of projected attributes
       RM_ScanIterator &rm_ScanIterator);
 
+  RC createIndex(const string &tableName, const string &attributeName);
+
+  RC destroyIndex(const string &tableName, const string &attributeName);
+
+  // indexScan returns an iterator to allow the caller to go through qualified entries in index
+  RC indexScan(const string &tableName,
+                        const string &attributeName,
+                        const void *lowKey,
+                        const void *highKey,
+                        bool lowKeyInclusive,
+                        bool highKeyInclusive,
+                        RM_IndexScanIterator &rm_IndexScanIterator);
+
 // Extra credit work (10 points)
 public:
   RC addAttribute(const string &tableName, const Attribute &attr);
@@ -80,6 +103,8 @@ protected:
   RelationManager();
   ~RelationManager();
 
+private:
+  static RelationManager *_rm;
 };
 
 #endif
