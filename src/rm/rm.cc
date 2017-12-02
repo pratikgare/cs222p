@@ -302,6 +302,38 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 	return 0;
 }
 
+RC getTableId(const string &tableName, int &tId, RID &rid){
+
+	const string TABLES_TABLE = "Tables";
+
+	//create tablName buffer
+	int len = tableName.size();
+	void* tableNameBuffer = malloc(sizeof(int)+len);
+	memcpy(tableNameBuffer, &len, sizeof(int));
+	memcpy((char*)tableNameBuffer+sizeof(int), tableName.c_str(), len);
+
+	RelationManager* rm = RelationManager::instance();
+
+	vector<string> attrs;
+	attrs.push_back("table-id");
+
+	RM_ScanIterator rmsi;
+
+	rm->scan(TABLES_TABLE, "table-name", EQ_OP, tableNameBuffer, attrs, rmsi);
+
+	void* data = malloc(PAGE_SIZE);
+	if(rmsi.getNextTuple(rid, data) == -1){
+		return -1;
+	}
+
+	memcpy(&tId, data+sizeof(char), sizeof(int));
+
+	rmsi.close();
+
+	return 0;
+}
+
+//TODO: add the code to delete the entries from the index table
 RC RelationManager::deleteTable(const string &tableName)
 {
 	// Can't delete the system tables
@@ -310,53 +342,29 @@ RC RelationManager::deleteTable(const string &tableName)
 	}
 
     //delete entry from the Tables table
-	//scan
-	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
 
 	//get table id from tables table
-	
-	void* value = malloc(4096);
-
-	//prepare data to be compared with
-	int len = tableName.length();
-	int offset = 0;
-	memcpy((char*)value+offset, &len, sizeof(int));
-	offset+=sizeof(int);
-	memcpy((char*)value+offset, tableName.c_str(), len);
-	offset+=len;
-
-	const string TABLES_TABLE = "Tables";
-
-	vector<Attribute> sysAttr;
-	createTablesAttributes(sysAttr);
-
-	vector<string> attrNames;
-	attrNames.push_back(sysAttr[0].name);
-
-	RM_ScanIterator rmsi;
-
-	scan(TABLES_TABLE, sysAttr[1].name, EQ_OP, value, attrNames, rmsi);
-
 	RID rid;
-	void* data = malloc(4096);
+	int tId = 0;
+	getTableId(tableName, tId, rid);
 
-	if(rmsi.getNextTuple(rid, data) !=0 ){
+	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
+	FileHandle fileHandle;
+
+	if(rbfm->openFile("Tables", fileHandle) != 0){
 		return -1;
 	}
 
-	//get table id from the data
-	int tId = 0;
-	memcpy(&tId, (char*)data+sizeof(char), sizeof(int));
-
-
+	vector<Attribute> sysAttr;
+	getAttributes("Tables", sysAttr);
 
 	//delete the entry from tables table
-	if(rbfm->deleteRecord(rmsi.fileHandle, sysAttr, rid) != 0){
+	if(rbfm->deleteRecord(fileHandle, sysAttr, rid) != 0){
 		return -1;
 	}
 
 	//close the file
-	if(rbfm->closeFile(rmsi.fileHandle) != 0){
+	if(rbfm->closeFile(fileHandle) != 0){
 		return -1;
 	}
 
@@ -374,13 +382,14 @@ RC RelationManager::deleteTable(const string &tableName)
 
 
 	//prepare scan
-	attrNames.clear();
+	vector<string> attrNames;
 	attrNames.push_back(sysAttr[0].name);
 	void* tIdBuffer = malloc(100);
 	memcpy(tIdBuffer, &tId, sizeof(int));
 
-	scan(COLUMNS_TABLE, sysAttr[0].name, EQ_OP, tIdBuffer, attrNames, rmsi);
+	RM_ScanIterator rmsi;
 
+	scan(COLUMNS_TABLE, sysAttr[0].name, EQ_OP, tIdBuffer, attrNames, rmsi);
 
 	//reading the contents and preparing the vector of attrs needed
 	void* buffer = malloc(4096);
@@ -389,7 +398,6 @@ RC RelationManager::deleteTable(const string &tableName)
 		if(rbfm->deleteRecord(rmsi.fileHandle, sysAttr, rid) != 0){
 			return -1;
 		}
-
 	}
 
 	//close the file
@@ -401,6 +409,12 @@ RC RelationManager::deleteTable(const string &tableName)
 	if(rbfm->destroyFile(tableName) != 0){
 		return -1;
 	}
+
+	//delete the entries from index table
+	const string INDEX_TABLE = "Index";
+
+
+
 
     return 0;
 }
@@ -429,46 +443,11 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
 
 	//get table id from tables table
-	void* value = malloc(4096);
-
-	//prepare data to be compared with
-	int len = tableName.length();
-	int offset = 0;
-	memcpy((char*)value+offset, &len, sizeof(int));
-	offset+=sizeof(int);
-	memcpy((char*)value+offset, tableName.c_str(), len);
-	offset+=len;
-
-	vector<Attribute> sysAttr;
-	createTablesAttributes(sysAttr);
-
-	vector<string> attrNames;
-	attrNames.push_back(sysAttr[0].name);
-
-	RM_ScanIterator rmsi;
-
-	scan(TABLES_TABLE, sysAttr[1].name, EQ_OP, value, attrNames, rmsi);
-
-
 	RID rid;
-	void* data = malloc(4096);
-
-	if(rmsi.getNextTuple(rid, data) == -1 ){
-		return -1;
-	}
-
-	//get table id from the data
 	int tId = 0;
-	memcpy(&tId, (char*)data+sizeof(char), sizeof(int));
-
-	if(rbfm->closeFile(rmsi.fileHandle) != 0){
-		return -1;
-	}
+	getTableId(tableName, tId, rid);
 
 	//get actual attributes from columns table
-	
-
-
 	//get columns table schema
 	vector<Attribute> sysAttrCol;
 	createColumnsAttributes(sysAttrCol);
@@ -485,7 +464,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	void* tIdBuffer = malloc(100);
 	memcpy(tIdBuffer, &tId, sizeof(int));
 
-
+	RM_ScanIterator rmsi;
 
 	scan(COLUMNS_TABLE, sysAttrCol[0].name, EQ_OP, tIdBuffer, attrNamesCol, rmsi);
 
@@ -527,6 +506,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
     return 0;
 }
 
+//TODO: chk for index and accomodate the changes
 RC RelationManager::insertTuple(const string &tableName, const void *data, RID &rid)
 {
 	// Can't insert into the system tables
@@ -537,12 +517,12 @@ RC RelationManager::insertTuple(const string &tableName, const void *data, RID &
 	RecordBasedFileManager *rbfm = RecordBasedFileManager::instance();
 	FileHandle fileHandle;
 
+	vector<Attribute> attrs;
+	getAttributes(tableName, attrs);
+
 	if(rbfm->openFile(tableName, fileHandle) != 0 ){
 		return -1;
 	}
-
-	vector<Attribute> attrs;
-	getAttributes(tableName, attrs);
 
 	if(rbfm->insertRecord(fileHandle, attrs, data, rid) != 0){
 		return -1;
@@ -555,6 +535,7 @@ RC RelationManager::insertTuple(const string &tableName, const void *data, RID &
     return 0;
 }
 
+//TODO: chk for index and accomodate the changes
 RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 {
 	// Can't delete from the system tables
@@ -585,6 +566,7 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
     return 0;
 }
 
+//TODO: chk for index and accomodate the changes
 RC RelationManager::updateTuple(const string &tableName, const void *data, const RID &rid)
 {
 	// Can't update tuples of the system tables
@@ -715,8 +697,9 @@ RC RM_ScanIterator::getNextTuple(RID &rid, void* data){
 
 RC RM_ScanIterator::close(){
 
-	if(this->rbfmsi.close() != 0)
+	if(this->rbfmsi.close() != 0){
 		return -1;
+	}
 
 	return 0;
 }
@@ -757,6 +740,7 @@ bool isAttributeOfTable(const string &tableName, const string &attributeName){
 	return false;
 }
 
+//TODO: complete the function and test
 RC RelationManager::createIndex(const string &tableName, const string &attributeName)
 {
 	//check if the attribute is a part of the given table or not
@@ -765,17 +749,49 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 		return -1;
 	}
 
-	string fileName = tableName+"_"+attributeName+"_"+"idx";
+	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
+
+	//get the table id from Tables for the given tableName
+	int tId = 0;
+	RM_ScanIterator rmsi;
+	RID rid;
+	getTableId(tableName, tId, rid);
 
 	IndexManager* ixManager = IndexManager::instance();
+
+	//create a new index on the given attributeName ie a new file for it
+	string fileName = tableName+"_"+attributeName+"_"+"idx";
 	ixManager->createFile(fileName);
 
-	//Update the metadata file
+	//updating the metadata Index table
+	//insert an entry into Index table
+	const string INDEX_TABLE = "Index";
 
+	void* indexEntry = malloc(PAGE_SIZE);
+	char* nullBytes = (char*)malloc(sizeof(char));
+	memset(nullBytes, 0, sizeof(char));
+	insertIndexTableEntry(indexEntry, nullBytes, tId, attributeName, fileName);
+
+	FileHandle fileHandle;
+	if(rbfm->openFile(INDEX_TABLE, fileHandle) != 0){
+		return -1;
+	}
+
+	vector<Attribute> rdIndexTable;
+	getAttributes("Index", rdIndexTable);
+
+	if(rbfm->insertRecord(fileHandle, rdIndexTable, indexEntry, rid) != 0){
+		return -1;
+	}
+
+	if(rbfm->closeFile(fileHandle) != 0){
+		return -1;
+	}
 
 	return 0;
 }
 
+//TODO: complete the function and test
 RC RelationManager::destroyIndex(const string &tableName, const string &attributeName)
 {
 	//check if the attribute is a part of the given table or not
@@ -791,19 +807,12 @@ RC RelationManager::destroyIndex(const string &tableName, const string &attribut
 		return -1;
 	}
 
-	FileHandle fileHandle;
 	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
-
-	if(rbfm->openFile("Index", fileHandle) != 0){
-		return -1;
-	}
 
 	vector<Attribute> rdIndexTable;
 	getAttributes(tableName, rdIndexTable);
 
 	vector<string> attrName;
-	//attrName.push_back("index-file-name");
-	//scan on basis of filename
 
 	int len = fileName.length();
 	void* fileNameBuffer = malloc(PAGE_SIZE);
@@ -812,30 +821,31 @@ RC RelationManager::destroyIndex(const string &tableName, const string &attribut
 
 	RM_ScanIterator rmsi;
 
-	scan(tableName, "index-file-name", EQ_OP, fileNameBuffer, attrName, rmsi);
-	//rbfm->scan(fileHandle, rdIndexTable, attrName[0], EQ_OP, fileNameBuffer, attrName, rmsi.rbfmsi);
+	const string INDEX_TABLE = "Index";
+
+	scan(INDEX_TABLE, "index-file-name", EQ_OP, fileNameBuffer, attrName, rmsi);
 
 	RID rid;
 	void* buffer = malloc(PAGE_SIZE);
-	if(rmsi.rbfmsi.getNextRecord(rid, buffer) != 0){
+	if(rmsi.getNextTuple(rid, buffer) != 0){
 		return -1;
 	}
 
 	vector<Attribute> indexAttrs;
 	getAttributes("Index", indexAttrs);
 
-	if(rbfm->deleteRecord(fileHandle, indexAttrs, rid) != 0){
+	if(rbfm->deleteRecord(rmsi.fileHandle, indexAttrs, rid) != 0){
 		return -1;
 	}
 
-	if(rbfm->closeFile(fileHandle) != 0){
+	if(rbfm->closeFile(rmsi.fileHandle) != 0){
 		return -1;
 	}
 
 	return 0;
 }
 
-//TODO: call proj3 functions
+//TODO: complete the function and test
 RC RelationManager::indexScan(const string &tableName,
                       const string &attributeName,
                       const void *lowKey,
