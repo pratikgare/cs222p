@@ -163,6 +163,19 @@ void insertColumnEntry(void* buffer, const char* nullBytes, const int tid, const
 	offset += sizeof(int);
 }
 
+
+bool isSystemTable(const string tableName){
+	const string TABLES_TABLE = "Tables";
+	const string COLUMNS_TABLE = "Columns";
+	const string INDEX_TABLE = "Index";
+
+	if(tableName.compare(TABLES_TABLE) == 0 || tableName.compare(COLUMNS_TABLE) == 0 || tableName.compare(INDEX_TABLE) == 0){
+		return true;
+	}
+
+	return false;
+}
+
 RC RelationManager::createTable(const string &tableName, const vector<Attribute> &attrs)
 {
 
@@ -233,39 +246,42 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 
 
 
-	int flag = 0;
+//	int flag = 0;
 
-	//create a new file for the new table
-	if(tableName.compare("Tables") == 0 || tableName.compare("Columns") == 0){
-		flag = 1;
+//	//create a new file for the new table
+//	if(tableName.compare("Tables") == 0 || tableName.compare("Columns") == 0){
+//		flag = 1;
+//	}
+//
+//	if(flag == 0){
+//		if(rbfm->createFile(fileName) != 0){
+//			////free(nullBytes);
+//			////free(recordBuffer);
+//			////free(data);
+//			return -1;
+//		}
+//
+//	}
+//
+//	////free(nullBytes);
+//	////free(recordBuffer);
+//	////free(data);
+
+	if(!isSystemTable(tableName) && rbfm->createFile(fileName) != 0){
+		return -1;
 	}
 
-	if(flag == 0){
-		if(rbfm->createFile(fileName) != 0){
-			////free(nullBytes);
-			////free(recordBuffer);
-			////free(data);
-			return -1;
-		}
 
-	}
-
-	////free(nullBytes);
-	////free(recordBuffer);
-	////free(data);
 
 	return 0;
 }
 
 RC RelationManager::deleteTable(const string &tableName)
 {
-    const string TABLES_TABLE = "Tables";
-    const string COLUMNS_TABLE = "Columns";
-    
 	// Can't delete the system tables
-    if((tableName.compare(TABLES_TABLE) == 0) || (tableName.compare(COLUMNS_TABLE) == 0)){
-        return -1;
-    }
+	if(isSystemTable(tableName)){
+		return -1;
+	}
 
        
    //delete entry from the Tables table
@@ -276,6 +292,8 @@ RC RelationManager::deleteTable(const string &tableName)
 	//get table id from tables table
 	
 	void* value = malloc(4096);
+
+	const string TABLES_TABLE = "Tables";
 
 	if(rbfm->openFile(TABLES_TABLE, fileHandle) != 0){
 		////free(value);
@@ -337,7 +355,7 @@ RC RelationManager::deleteTable(const string &tableName)
 
 	//delete entry from the Columns table
 	
-
+	const string COLUMNS_TABLE = "Columns";
 	if(rbfm->openFile(COLUMNS_TABLE, fileHandle) != 0){
 		////free(value);
 		////free(data);
@@ -548,6 +566,12 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 
 RC RelationManager::insertTuple(const string &tableName, const void *data, RID &rid)
 {
+
+	// Can't insert into the system tables
+	if(isSystemTable(tableName)){
+		return -1;
+	}
+
 	RecordBasedFileManager *rbfm = RecordBasedFileManager::instance();
 	FileHandle fileHandle;
 
@@ -571,6 +595,11 @@ RC RelationManager::insertTuple(const string &tableName, const void *data, RID &
 
 RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 {
+	// Can't delete from the system tables
+	if(isSystemTable(tableName)){
+		return -1;
+	}
+
 	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
 	FileHandle fileHandle;
 
@@ -596,6 +625,11 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 
 RC RelationManager::updateTuple(const string &tableName, const void *data, const RID &rid)
 {
+	// Can't update tuples of the system tables
+	if(isSystemTable(tableName)){
+		return -1;
+	}
+
 	RecordBasedFileManager *rbfm = RecordBasedFileManager::instance();
 	FileHandle fileHandle;
 
@@ -621,6 +655,7 @@ RC RelationManager::updateTuple(const string &tableName, const void *data, const
 
 RC RelationManager::readTuple(const string &tableName, const RID &rid, void *data)
 {
+
 	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
 	FileHandle fileHandle;
 
@@ -656,6 +691,7 @@ RC RelationManager::printTuple(const vector<Attribute> &attrs, const void *data)
 
 RC RelationManager::readAttribute(const string &tableName, const RID &rid, const string &attributeName, void *data)
 {
+
 	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
 	FileHandle fileHandle;
 
@@ -688,9 +724,8 @@ RC RelationManager::scan(const string &tableName,
 {
 
 	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
-	FileHandle fileHandle;
 
-	if(rbfm->openFile(tableName, fileHandle) != 0){
+	if(rbfm->openFile(tableName, rm_ScanIterator.fileHandle) != 0){
 		return -1;
 	}
 
@@ -700,7 +735,7 @@ RC RelationManager::scan(const string &tableName,
 		return -1;
 	}
 
-	if(rbfm->scan(fileHandle, recordDescriptor, conditionAttribute, compOp, value, attributeNames, rm_ScanIterator.rbfmsi) != 0){
+	if(rbfm->scan(rm_ScanIterator.fileHandle, recordDescriptor, conditionAttribute, compOp, value, attributeNames, rm_ScanIterator.rbfmsi) != 0){
 		return -1;
 	}
 
