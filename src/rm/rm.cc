@@ -885,9 +885,7 @@ RC RelationManager::indexScan(const string &tableName,
 		return -1;
 	}
 
-	RM_ScanIterator rmsi;
-
-//	ixm->scan(ixFileHandle, attrs[which], lowKey, highKey, lowKeyInclusive, highKeyInclusive, rmsi.ixsi);
+	ixm->scan(ixFileHandle, attrs[which], lowKey, highKey, lowKeyInclusive, highKeyInclusive, rm_IndexScanIterator.ixsi);
 
 	return 0;
 }
