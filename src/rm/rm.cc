@@ -427,15 +427,9 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	}
 
 	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
-	FileHandle fileHandle;
 
 	//get table id from tables table
-	
 	void* value = malloc(4096);
-
-	if(rbfm->openFile(TABLES_TABLE, fileHandle) != 0){
-		return -1;
-	}
 
 	//prepare data to be compared with
 	int len = tableName.length();
@@ -445,22 +439,21 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	memcpy((char*)value+offset, tableName.c_str(), len);
 	offset+=len;
 
-	RM_ScanIterator rmsi;
-
 	vector<Attribute> sysAttr;
 	createTablesAttributes(sysAttr);
 
 	vector<string> attrNames;
 	attrNames.push_back(sysAttr[0].name);
 
-	if(rbfm->scan(fileHandle, sysAttr, sysAttr[1].name, EQ_OP, value, attrNames, rmsi.rbfmsi) != 0){
-		return -1;
-	}
+	RM_ScanIterator rmsi;
+
+	scan(TABLES_TABLE, sysAttr[1].name, EQ_OP, value, attrNames, rmsi);
+
 
 	RID rid;
 	void* data = malloc(4096);
 
-	if(rmsi.rbfmsi.getNextRecord(rid, data) == -1 ){
+	if(rmsi.getNextTuple(rid, data) == -1 ){
 		return -1;
 	}
 
@@ -468,16 +461,13 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	int tId = 0;
 	memcpy(&tId, (char*)data+sizeof(char), sizeof(int));
 
-	if(rbfm->closeFile(fileHandle) != 0){
+	if(rbfm->closeFile(rmsi.fileHandle) != 0){
 		return -1;
 	}
 
 	//get actual attributes from columns table
 	
 
-	if(rbfm->openFile(COLUMNS_TABLE, fileHandle) != 0){
-		return -1;
-	}
 
 	//get columns table schema
 	vector<Attribute> sysAttrCol;
@@ -495,16 +485,14 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	void* tIdBuffer = malloc(100);
 	memcpy(tIdBuffer, &tId, sizeof(int));
 
-	if(rbfm->scan(fileHandle, sysAttrCol, sysAttrCol[0].name, EQ_OP, tIdBuffer, attrNamesCol, rmsi.rbfmsi) != 0){
-		return -1;
-	}
 
 
+	scan(COLUMNS_TABLE, sysAttrCol[0].name, EQ_OP, tIdBuffer, attrNamesCol, rmsi);
 
 	//reading the contents and preparing the vector of attrs needed
 	void* buffer = malloc(4096);
 
-	while(rmsi.rbfmsi.getNextRecord(rid, buffer) != -1){
+	while(rmsi.getNextTuple(rid, buffer) != -1){
 		Attribute attribute;
 
 		int offset = 1;
@@ -532,7 +520,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 		attrs.push_back(attribute);
 	}
 
-	if(rbfm->closeFile(fileHandle) != 0){
+	if(rbfm->closeFile(rmsi.fileHandle) != 0){
 		return -1;
 	}
 
