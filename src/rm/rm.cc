@@ -732,7 +732,7 @@ bool isAttributeOfTable(const string &tableName, const string &attributeName, ve
 
 	rm->getAttributes(tableName, attrs);
 
-	for(int i=0; i<attrs.size(); i++){
+	for(unsigned i=0; i<attrs.size(); i++){
 		if(attrs[i].name.compare(attributeName) == 0){
 			attribute = attrs[i];
 			return true;
@@ -764,7 +764,6 @@ RC extractKey(const void* attribute, Attribute attr, void* key){
 }
 
 
-//TODO: complete the function and test
 RC RelationManager::createIndex(const string &tableName, const string &attributeName)
 {
 	vector<Attribute> tableNameAttrs;
@@ -784,6 +783,7 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 	IndexManager* ixManager = IndexManager::instance();
 	//create a new index on the given attributeName ie a new file for it
 	string fileName = tableName+"_"+attributeName+"_"+"idx";
+
 	ixManager->createFile(fileName);
 
 
@@ -795,15 +795,23 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 
 	RM_ScanIterator rmsi;
 	IXFileHandle ixFileHandle;
+	if(ixManager->openFile(fileName, ixFileHandle) != 0){
+		return -1;
+	}
 
 	scan(tableName, "", NO_OP, NULL, attrNames, rmsi);
 
 	void* data = malloc(PAGE_SIZE);
 	void* key = malloc(PAGE_SIZE);
 	while(rmsi.getNextTuple(rid, data) != -1){
-		cout<<rid.pageNum<<" "<<rid.slotNum<<endl;
 		extractKey(data, attribute, key);
 		ixManager->insertEntry(ixFileHandle, attribute, key, rid);
+	}
+
+	ixManager->printBtree(ixFileHandle, attribute);
+
+	if(ixManager->closeFile(ixFileHandle) != 0){
+		return -1;
 	}
 
 	free(data);
