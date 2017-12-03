@@ -295,8 +295,10 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 		return -1;
 	}
 
-	if(!isSystemTable(tableName) && rbfm->createFile(fileName) != 0){
-		return -1;
+	if(!isSystemTable(tableName)){
+		if(rbfm->createFile(fileName) != 0){
+			return -1;
+		}
 	}
 
 	return 0;
@@ -724,15 +726,15 @@ RC RelationManager::addAttribute(const string &tableName, const Attribute &attr)
     return -1;
 }
 
-bool isAttributeOfTable(const string &tableName, const string &attributeName){
+bool isAttributeOfTable(const string &tableName, const string &attributeName, vector<Attribute> &attrs, Attribute &attribute){
 
 	RelationManager* rm = RelationManager::instance();
 
-	vector<Attribute> attrs;
 	rm->getAttributes(tableName, attrs);
 
 	for(int i=0; i<attrs.size(); i++){
 		if(attrs[i].name.compare(attributeName) == 0){
+			attribute = attrs[i];
 			return true;
 		}
 	}
@@ -740,28 +742,72 @@ bool isAttributeOfTable(const string &tableName, const string &attributeName){
 	return false;
 }
 
+RC extractKey(const void* attribute, Attribute attr, void* key){
+
+	int offset = 1;
+	switch(attr.type){
+		case TypeInt:
+		case TypeReal:{
+			memcpy(key, (char*)attribute+offset, sizeof(int));
+			break;
+		}
+
+		case TypeVarChar:{
+			int length = 0;
+			memcpy(&length, (char*)attribute+offset, sizeof(int));
+			memcpy(key, (char*)attribute+offset, sizeof(int)+length);
+			break;
+		}
+	}
+
+	return 0;
+}
+
+
 //TODO: complete the function and test
 RC RelationManager::createIndex(const string &tableName, const string &attributeName)
 {
+	vector<Attribute> tableNameAttrs;
+	Attribute attribute;
 	//check if the attribute is a part of the given table or not
-	if(!isAttributeOfTable(attributeName, tableName)){
+	if(!isAttributeOfTable(tableName, attributeName, tableNameAttrs, attribute)){
 		cerr << "The given attribute is not an attribute of the given table" << endl;
 		return -1;
 	}
 
-	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
 
 	//get the table id from Tables for the given tableName
 	int tId = 0;
-	RM_ScanIterator rmsi;
 	RID rid;
 	getTableId(tableName, tId, rid);
 
 	IndexManager* ixManager = IndexManager::instance();
-
 	//create a new index on the given attributeName ie a new file for it
 	string fileName = tableName+"_"+attributeName+"_"+"idx";
 	ixManager->createFile(fileName);
+
+
+	//scan all the records and get the key, rid from the record
+	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
+
+	vector<string> attrNames;
+	attrNames.push_back(attributeName);
+
+	RM_ScanIterator rmsi;
+	IXFileHandle ixFileHandle;
+
+	scan(tableName, "", NO_OP, NULL, attrNames, rmsi);
+
+	void* data = malloc(PAGE_SIZE);
+	void* key = malloc(PAGE_SIZE);
+	while(rmsi.getNextTuple(rid, data) != -1){
+		cout<<rid.pageNum<<" "<<rid.slotNum<<endl;
+		extractKey(data, attribute, key);
+		ixManager->insertEntry(ixFileHandle, attribute, key, rid);
+	}
+
+	free(data);
+	free(key);
 
 	//updating the metadata Index table
 	//insert an entry into Index table
@@ -794,10 +840,12 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 //TODO: complete the function and test
 RC RelationManager::destroyIndex(const string &tableName, const string &attributeName)
 {
+	vector<Attribute> tableNameAttrs;
+	Attribute attribute;
 	//check if the attribute is a part of the given table or not
-	if(!isAttributeOfTable(attributeName, tableName)){
+	if(!isAttributeOfTable(tableName, attributeName, tableNameAttrs, attribute)){
 		cerr << "The given attribute is not an attribute of the given table" << endl;
-		return 0;
+		return -1;
 	}
 
 	string fileName = tableName+"_"+attributeName+"_"+"idx";

@@ -1603,6 +1603,10 @@ RC RBFM_ScanIterator::findHit(RID &rid, void *data){
 	short total_slots = 0;
 	int total_pages = (int) (fileHandle.getNumberOfPages());
 
+	if(total_pages == 0){
+		return -1;
+	}
+
 	while(true){
 
 		fileHandle.readPage(rid.pageNum, page_data);
