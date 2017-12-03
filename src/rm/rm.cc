@@ -332,7 +332,7 @@ RC getTableId(const string &tableName, int &tId, RID &rid){
 	return 0;
 }
 
-//TODO: add the code to delete the entries from the index table
+//TODO: test
 RC RelationManager::deleteTable(const string &tableName)
 {
 	// Can't delete the system tables
@@ -409,11 +409,26 @@ RC RelationManager::deleteTable(const string &tableName)
 		return -1;
 	}
 
+
+
 	//delete the entries from index table
 	const string INDEX_TABLE = "Index";
 
+	//get columns table schema
+	sysAttr.clear();
+	createIndexAttributes(sysAttr);
 
+	attrNames.clear();
+	attrNames.push_back(sysAttr[1].name);
 
+	scan(INDEX_TABLE, sysAttr[0].name, EQ_OP, tIdBuffer, attrNames, rmsi);
+
+	RID rid_idx;
+	while(rmsi.getNextTuple(rid_idx, buffer) != -1){
+		if(rbfm->deleteRecord(rmsi.fileHandle, sysAttr, rid_idx) != 0){
+			return -1;
+		}
+	}
 
     return 0;
 }
