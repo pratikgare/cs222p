@@ -603,7 +603,6 @@ RC getKey(const void* data, const vector<Attribute> &recordDescriptor, const str
 	return 0;
 }
 
-//TODO: chk for index and accomodate the changes
 RC RelationManager::insertTuple(const string &tableName, const void *data, RID &rid)
 {
 	// Can't insert into the system tables
@@ -673,7 +672,7 @@ RC RelationManager::insertTuple(const string &tableName, const void *data, RID &
     return 0;
 }
 
-//TODO: chk for index and accomodate the changes
+//TODO: test
 RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 {
 	// Can't delete from the system tables
@@ -693,6 +692,12 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 		return -1;
 	}
 
+	void* data = malloc(PAGE_SIZE);
+
+	if(rbfm->readRecord(fileHandle, attributes, rid, data) != 0){
+		return -1;
+	}
+
 	if(rbfm->deleteRecord(fileHandle, attributes, rid) != 0){
 		return -1;
 	}
@@ -701,10 +706,50 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 		return -1;
 	}
 
+	// index chk
+	// get table id
+	int tId = 0;
+	RID rid_idx;
+	getTableId(tableName, tId, rid_idx);
+
+	// get all the attributes having indexes on that table - scan the index table
+	vector<string> attr;
+	attr.push_back("index-name");
+	attr.push_back("index-file-name");
+	RM_ScanIterator rmsi;
+	scan("Index", "table-id", EQ_OP, &tId, attr, rmsi);
+
+	// we have the recordDescriptor of the table - accordingly insertEntry for respective index
+	void* retData = malloc(PAGE_SIZE);
+	void* key = malloc(PAGE_SIZE);
+	Attribute attribute;
+	IndexManager* ixm = IndexManager::instance();
+	IXFileHandle ixFileHandle;
+
+	while(rmsi.getNextTuple(rid_idx, retData) != -1){
+		string attrName;
+		string fileName;
+		extractAttrs(retData, attrName, fileName);
+		getKey(data, attributes, attrName, key, attribute);
+
+		if(ixm->openFile(fileName, ixFileHandle) != 0){
+			return -1;
+		}
+
+		if(ixm->deleteEntry(ixFileHandle, attribute, key, rid) != 0){
+			return -1;
+		}
+
+		if(ixm->closeFile(ixFileHandle) != 0){
+			return -1;
+		}
+	}
+
+
     return 0;
 }
 
-//TODO: chk for index and accomodate the changes
+//TODO: test
 RC RelationManager::updateTuple(const string &tableName, const void *data, const RID &rid)
 {
 	// Can't update tuples of the system tables
@@ -724,12 +769,63 @@ RC RelationManager::updateTuple(const string &tableName, const void *data, const
 		return -1;
 	}
 
+	//Reading old data
+	void* dataOld = malloc(PAGE_SIZE);
+	if(rbfm->readRecord(fileHandle, attrs, rid, dataOld) != 0){
+		return -1;
+	}
+
 	if(rbfm->updateRecord(fileHandle, attrs, data, rid) != 0){
 		return -1;
 	}
 
 	if(rbfm->closeFile(fileHandle) != 0){
 		return -1;
+	}
+
+	// index chk
+	// get table id
+	int tId = 0;
+	RID rid_idx;
+	getTableId(tableName, tId, rid_idx);
+
+	// get all the attributes having indexes on that table - scan the index table
+	vector<string> attr;
+	attr.push_back("index-name");
+	attr.push_back("index-file-name");
+	RM_ScanIterator rmsi;
+	scan("Index", "table-id", EQ_OP, &tId, attr, rmsi);
+
+	// we have the recordDescriptor of the table - accordingly insertEntry for respective index
+	void* retData = malloc(PAGE_SIZE);
+	void* key = malloc(PAGE_SIZE);
+	void* keyOld = malloc(PAGE_SIZE);
+	Attribute attribute;
+	IndexManager* ixm = IndexManager::instance();
+	IXFileHandle ixFileHandle;
+
+	while(rmsi.getNextTuple(rid_idx, retData) != -1){
+		string attrName;
+		string fileName;
+		extractAttrs(retData, attrName, fileName);
+		getKey(data, attrs, attrName, key, attribute);
+		getKey(dataOld, attrs, attrName, keyOld, attribute);
+
+		if(ixm->openFile(fileName, ixFileHandle) != 0){
+			return -1;
+		}
+
+		if(ixm->deleteEntry(ixFileHandle, attribute, keyOld, rid) != 0){
+			return -1;
+		}
+
+		if(ixm->insertEntry(ixFileHandle, attribute, key, rid) != 0){
+			return -1;
+		}
+
+		if(ixm->closeFile(ixFileHandle) != 0){
+			return -1;
+		}
 	}
 
     return 0;
