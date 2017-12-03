@@ -1,9 +1,6 @@
-#include "rm.h"
-
-#include <ix/ix.h>
-#include <rbf/pfm.h>
 #include <rm/rm.h>
 #include <stdlib.h>
+#include <cmath>
 #include <cstring>
 #include <iostream>
 
@@ -328,7 +325,7 @@ RC getTableId(const string &tableName, int &tId, RID &rid){
 		return -1;
 	}
 
-	memcpy(&tId, data+sizeof(char), sizeof(int));
+	memcpy(&tId, (char*)data+sizeof(char), sizeof(int));
 
 	rmsi.close();
 
@@ -508,6 +505,104 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
     return 0;
 }
 
+RC extractAttrs(const void* attributes, string &indexName, string &fileName){
+
+	int offset = 1;
+
+	int length = 0;
+	//indexNameBuffer
+	memcpy(&length, (char*)attributes+offset, sizeof(int));
+	void* indexNameBuffer = malloc(length);
+	offset += sizeof(int);
+	memcpy(indexNameBuffer, (char*)attributes+offset, length);
+	offset += length;
+	//convert to string
+	string indexNames((char*)indexNameBuffer, length);
+	indexName = indexNames;
+	free(indexNameBuffer);
+
+	//fileNameBuffer
+	memcpy(&length, (char*)attributes+offset, sizeof(int));
+	void* fileNameBuffer = malloc(length);
+	offset += sizeof(int);
+	memcpy(fileNameBuffer, (char*)attributes+offset, length);
+	offset += length;
+	//convert to string
+	string fileNames((char*)fileNameBuffer, length);
+	fileName = fileNames;
+	free(fileNameBuffer);
+
+	return 0;
+}
+
+RC getKey(const void* data, const vector<Attribute> &recordDescriptor, const string &attrName, void* key, Attribute &attribute){
+
+	int fields = recordDescriptor.size();
+	int nullBytes = (int) ceil(fields/8.0);
+
+	//GET BIT VECTOR FROM NULL BYTES
+	int* bitArray = new int[nullBytes*8];
+
+	int offsetDataRead = 0;
+
+	//copy the null bytes
+	char* byte = (char*)malloc(nullBytes);
+	memcpy(byte, data, nullBytes);
+
+	offsetDataRead+=nullBytes;
+
+	for(int i=0; i<nullBytes*8; i++){
+		bitArray[i] = byte[i/8]&(1<<(7-(i%8)));
+	}
+
+	free(byte);
+
+	bool flag = false;
+	for(int i=0; i<fields; i++){
+		if(bitArray[i]==0){
+			switch(recordDescriptor[i].type){
+
+				case TypeVarChar:{
+					int length = 0;
+					if(recordDescriptor[i].name.compare(attrName) == 0){
+						memcpy(&length, (char*)data+offsetDataRead, sizeof(int));
+						memcpy(key, (char*)data+offsetDataRead, sizeof(int)+length);
+						attribute = recordDescriptor[i];
+						flag = true;
+					}
+					offsetDataRead += sizeof(int)+length;
+					break;
+				}
+
+				case TypeInt:{
+					if(recordDescriptor[i].name.compare(attrName) == 0){
+						memcpy(key, (char*)data+offsetDataRead, sizeof(int));
+						attribute = recordDescriptor[i];
+						flag = true;
+					}
+					offsetDataRead += sizeof(int);
+					break;
+				}
+
+				case TypeReal:{
+					if(recordDescriptor[i].name.compare(attrName) == 0){
+						memcpy(key, (char*)data+offsetDataRead, sizeof(float));
+						attribute = recordDescriptor[i];
+						flag = true;
+					}
+					offsetDataRead += sizeof(float);
+					break;
+				}
+			}
+		}
+		if(flag){
+			break;
+		}
+	}
+	delete[] bitArray;
+	return 0;
+}
+
 //TODO: chk for index and accomodate the changes
 RC RelationManager::insertTuple(const string &tableName, const void *data, RID &rid)
 {
@@ -533,6 +628,47 @@ RC RelationManager::insertTuple(const string &tableName, const void *data, RID &
 	if(rbfm->closeFile(fileHandle) != 0 ){
 		return -1;
 	}
+
+
+	// index chk
+	// get table id
+	int tId = 0;
+	RID rid_idx;
+	getTableId(tableName, tId, rid_idx);
+
+	// get all the attributes having indexes on that table - scan the index table
+	vector<string> attr;
+	attr.push_back("index-name");
+	attr.push_back("index-file-name");
+	RM_ScanIterator rmsi;
+	scan("Index", "table-id", EQ_OP, &tId, attr, rmsi);
+
+	// we have the recordDescriptor of the table - accordingly insertEntry for respective index
+	void* retData = malloc(PAGE_SIZE);
+	void* key = malloc(PAGE_SIZE);
+	Attribute attribute;
+	IndexManager* ixm = IndexManager::instance();
+	IXFileHandle ixFileHandle;
+
+	while(rmsi.getNextTuple(rid_idx, retData) != -1){
+		string attrName;
+		string fileName;
+		extractAttrs(retData, attrName, fileName);
+		getKey(data, attrs, attrName, key, attribute);
+
+		if(ixm->openFile(fileName, ixFileHandle) != 0){
+			return -1;
+		}
+
+		if(ixm->insertEntry(ixFileHandle, attribute, key, rid) != 0){
+			return -1;
+		}
+
+		if(ixm->closeFile(ixFileHandle) != 0){
+			return -1;
+		}
+	}
+
 
     return 0;
 }
@@ -742,7 +878,7 @@ bool isAttributeOfTable(const string &tableName, const string &attributeName, ve
 	return false;
 }
 
-RC extractKey(const void* attribute, Attribute attr, void* key){
+RC extractKey(const void* attribute, const Attribute &attr, void* key){
 
 	int offset = 1;
 	switch(attr.type){
@@ -762,7 +898,6 @@ RC extractKey(const void* attribute, Attribute attr, void* key){
 
 	return 0;
 }
-
 
 RC RelationManager::createIndex(const string &tableName, const string &attributeName)
 {
@@ -808,7 +943,7 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 		ixManager->insertEntry(ixFileHandle, attribute, key, rid);
 	}
 
-	ixManager->printBtree(ixFileHandle, attribute);
+	//ixManager->printBtree(ixFileHandle, attribute);
 
 	if(ixManager->closeFile(ixFileHandle) != 0){
 		return -1;
@@ -845,7 +980,7 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 	return 0;
 }
 
-//TODO: complete the function and test
+//TODO: test
 RC RelationManager::destroyIndex(const string &tableName, const string &attributeName)
 {
 	vector<Attribute> tableNameAttrs;
@@ -858,11 +993,13 @@ RC RelationManager::destroyIndex(const string &tableName, const string &attribut
 
 	string fileName = tableName+"_"+attributeName+"_"+"idx";
 
+	//destroy file
 	IndexManager* ixm = IndexManager::instance();
 	if(ixm->destroyFile(fileName) != 0){
 		return -1;
 	}
 
+	//Update index table
 	RecordBasedFileManager* rbfm = RecordBasedFileManager::instance();
 
 	vector<Attribute> rdIndexTable;
@@ -901,7 +1038,6 @@ RC RelationManager::destroyIndex(const string &tableName, const string &attribut
 	return 0;
 }
 
-//TODO: complete the function and test
 RC RelationManager::indexScan(const string &tableName,
                       const string &attributeName,
                       const void *lowKey,
@@ -923,7 +1059,7 @@ RC RelationManager::indexScan(const string &tableName,
 	vector<Attribute> attrs;
 	getAttributes(tableName, attrs);
 
-	for(int i=0; i<attrs.size(); i++){
+	for(unsigned i=0; i<attrs.size(); i++){
 		if(attrs[i].name.compare(attributeName) == 0){
 			which = i;
 			break;
