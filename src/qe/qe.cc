@@ -46,9 +46,9 @@ RC getAttrVal(const void* data, const vector<Attribute> &recordDescriptor, const
 
 					if(recordDescriptor[i].name.compare(attrName) == 0){
 						void* attrVal = malloc(length);
-						memcpy(attrVal, (char*)data+offsetDataRead+sizeof(int), length);
+						//memcpy(attrVal, (char*)data+offsetDataRead+sizeof(int), length);
 
-						string newStr((char*)attrVal, length);
+						string newStr((char*)data+offsetDataRead+sizeof(int), length);
 						attrVarCharVal = newStr;
 
 						attrtype = recordDescriptor[i].type;
