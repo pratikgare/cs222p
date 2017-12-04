@@ -1158,11 +1158,10 @@ RC RelationManager::indexScan(const string &tableName,
                       RM_IndexScanIterator &rm_IndexScanIterator)
 {
 	IndexManager* ixm = IndexManager::instance();
-	IXFileHandle ixFileHandle;
 
 	const string fileName = tableName+"_"+attributeName+"_"+"idx";
 
-	if(ixm->openFile(fileName, ixFileHandle) != 0){
+	if(ixm->openFile(fileName, rm_IndexScanIterator.ixFileHandle) != 0){
 		return -1;
 	}
 
@@ -1181,8 +1180,24 @@ RC RelationManager::indexScan(const string &tableName,
 		return -1;
 	}
 
-	ixm->scan(ixFileHandle, attrs[which], lowKey, highKey, lowKeyInclusive, highKeyInclusive, rm_IndexScanIterator.ixsi);
+	ixm->scan(rm_IndexScanIterator.ixFileHandle, attrs[which], lowKey, highKey, lowKeyInclusive, highKeyInclusive, rm_IndexScanIterator.ixsi);
 
+	return 0;
+}
+
+RC RM_IndexScanIterator::getNextEntry(RID &rid, void* key){
+
+	if(this->ixsi.getNextEntry(rid, key) == -1){
+		return -1;
+	}
+
+	return 0;
+}
+
+RC RM_IndexScanIterator::close(){
+	if(this->ixsi.close() != 0){
+		return -1;
+	}
 	return 0;
 }
 

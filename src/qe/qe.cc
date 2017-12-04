@@ -267,9 +267,7 @@ bool isConditionSatisfied(const void* leftData, const vector<Attribute> &leftDat
 			case TypeVarChar:{
 				int len = 0;
 				memcpy(&len, condition.rhsValue.data, sizeof(int));
-				void* rightVarCharBuffer = malloc(len);
-				memcpy(&rightVarCharBuffer, (char*)condition.rhsValue.data+sizeof(int), len);
-				string newStr((char*)rightVarCharBuffer, len);
+				string newStr((char*)condition.rhsValue.data+sizeof(int), len);
 				rightVarChar = newStr;
 
 				return compareVarChar(leftVarChar, rightVarChar, condition.op);
