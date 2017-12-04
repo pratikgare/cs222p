@@ -243,8 +243,24 @@ bool isConditionSatisfied(const void* leftData, const vector<Attribute> &leftDat
 
 	if(condition.bRhsIsAttr){
 		//use both dataLeft and dataRight
-
 		AttrType rightAttrType;
+
+		getAttrVal(rightData, rightDataRd, condition.rhsAttr, rightInt, rightReal, rightVarChar, rightAttrType);
+
+		switch(rightAttrType){
+			case TypeInt:{
+				return compareInt(leftInt, rightInt, condition.op);
+				break;
+			}
+			case TypeReal:{
+				return compareReal(leftReal, rightReal, condition.op);
+				break;
+			}
+			case TypeVarChar:{
+				return compareVarChar(leftVarChar, rightVarChar, condition.op);
+				break;
+			}
+		}
 
 	}
 	else{
