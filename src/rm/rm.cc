@@ -579,8 +579,8 @@ RC getKey(const void* data, const vector<Attribute> &recordDescriptor, const str
 
 				case TypeVarChar:{
 					int length = 0;
+					memcpy(&length, (char*)data+offsetDataRead, sizeof(int));
 					if(recordDescriptor[i].name.compare(attrName) == 0){
-						memcpy(&length, (char*)data+offsetDataRead, sizeof(int));
 						memcpy(key, (char*)data+offsetDataRead, sizeof(int)+length);
 						attribute = recordDescriptor[i];
 						flag = true;

@@ -194,6 +194,8 @@ class Filter : public Iterator {
 	Iterator* filter_itr;
 	Condition condition;
 
+	vector<Attribute> filter_attrs;
+
     // Filter operator
     public:
         Filter(Iterator *input,               // Iterator of input R
