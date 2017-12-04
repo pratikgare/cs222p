@@ -575,7 +575,7 @@ int populateLeftTable() {
 		}
 	}
 
-	clean_up:
+clean_up:
 	free(buf);
 	return rc;
 }
