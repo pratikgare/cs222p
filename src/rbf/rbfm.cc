@@ -1585,7 +1585,7 @@ RC RBFM_ScanIterator::findHit(RID &rid, void *data){
 
 	if(end_of_file == true){
 		// end of file reached
-	    end_of_file = false;
+	    end_of_file = true;
 		return -1;
 	}
 

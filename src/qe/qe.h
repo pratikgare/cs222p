@@ -213,6 +213,8 @@ class Project : public Iterator {
 	Iterator* project_itr;
 	vector<string> attrNames;
 
+	vector<Attribute> project_attrs;
+
     // Projection operator
     public:
         Project(Iterator *input,                    // Iterator of input R
@@ -290,6 +292,8 @@ class Aggregate : public Iterator {
 	Attribute aggrAttr;
 	Attribute grpAttr;
 	AggregateOp op;
+
+	vector<Attribute> aggr_attrs;
 
     // Aggregation operator
     public:
