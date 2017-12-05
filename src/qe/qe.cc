@@ -129,7 +129,7 @@ RC getAttrVal(const void* data, const vector<Attribute> &recordDescriptor, const
 
 RC getAttributeType(const vector<Attribute> &recordDescriptor, const string &attrName, AttrType &attrtype){
 
-	for(int i = 0; i < recordDescriptor.size(); i++){
+	for(unsigned i = 0; i < recordDescriptor.size(); i++){
 		if(recordDescriptor[i].name.compare(attrName) == 0){
 			attrtype = recordDescriptor[i].type;
 			return 0;
@@ -373,15 +373,172 @@ void Filter::getAttributes(vector<Attribute> &attrs) const{
 }
 
 
+RC getAttrVal(const void* data, const vector<Attribute> &recordDescriptor, const string &attrName,
+		int &attrIntVal, float &attrRealVal, string &attrVarCharVal, AttrType &attrtype, bool &isNull){
 
-//RC prepareProject(const void* data, const vector<Attribute> &recordDescriptor, const vector<string> &attrNames){
-//
-//	for(int j=0; j<attrNames.size(); j++){
-//		getAttrVal(data, recordDescriptor, , attrIntVal, attrRealVal, attrVarCharVal, type);
-//	}
-//
-//	return 0;
-//}
+	int fields = recordDescriptor.size();
+	int nullBytes = 0;
+
+	//GET BIT VECTOR FROM NULL BYTES
+	int* bitArray = new int[fields];
+	extractNullbitArray(data, bitArray, fields, nullBytes);
+
+	int offsetDataRead = 0;
+	offsetDataRead+=nullBytes;
+
+	bool flag = false;
+	for(int i=0; i<fields; i++){
+		if(bitArray[i]==0){
+			switch(recordDescriptor[i].type){
+
+				case TypeVarChar:{
+					int length = 0;
+					memcpy(&length, (char*)data+offsetDataRead, sizeof(int));
+
+					if(recordDescriptor[i].name.compare(attrName) == 0){
+						void* attrVal = malloc(length);
+						//memcpy(attrVal, (char*)data+offsetDataRead+sizeof(int), length);
+
+						string newStr((char*)data+offsetDataRead+sizeof(int), length);
+						attrVarCharVal = newStr;
+
+						attrtype = recordDescriptor[i].type;
+						flag = true;
+						free(attrVal);
+					}
+					offsetDataRead += sizeof(int)+length;
+					break;
+				}
+
+				case TypeInt:{
+					if(recordDescriptor[i].name.compare(attrName) == 0){
+						memcpy(&attrIntVal, (char*)data+offsetDataRead, sizeof(int));
+						attrtype = recordDescriptor[i].type;
+						flag = true;
+					}
+					offsetDataRead += sizeof(int);
+					break;
+				}
+
+				case TypeReal:{
+					if(recordDescriptor[i].name.compare(attrName) == 0){
+						memcpy(&attrRealVal, (char*)data+offsetDataRead, sizeof(float));
+						attrtype = recordDescriptor[i].type;
+						flag = true;
+					}
+					offsetDataRead += sizeof(float);
+					break;
+				}
+			}
+		}
+		else{
+			if(recordDescriptor[i].name.compare(attrName) == 0){
+				isNull = true;
+				attrtype = recordDescriptor[i].type;
+			}
+		}
+		if(flag){
+			break;
+		}
+	}
+	delete[] bitArray;
+	return 0;
+}
+
+
+void prepareNullBytes(unsigned char* nullByteBuffer, const int* nullByteArray, const int &size){
+	unsigned char k = 0;
+	int a = 0;
+	int b = 0;
+
+	// NullBytes creation of output data
+	for(int z=0; z < size; z++){
+
+		b = z % 8;
+		if(b == 0){
+			// Initialization after every 8 bits
+			k = 0;
+			a = (int)(z/8);
+			nullByteBuffer[a] = 0;
+		}
+
+		k = 1 << (7-b);
+
+		if(nullByteArray[z] == 1){
+			nullByteBuffer[a] = nullByteBuffer[a] + k;
+		}
+
+	}
+}
+
+RC prepareProject(const void* data, void* retData, const vector<Attribute> &recordDescriptor, const vector<string> &attrNames){
+
+	int *bitArray = new int[attrNames.size()];
+	int nullBytes = ceil(attrNames.size()/8.0);
+
+	for(unsigned i=0; i<attrNames.size(); i++){
+		bitArray[i] = 0;
+	}
+
+	int attrIntVal = 0;
+	float attrRealVal = 0;
+	string attrVarCharVal = "";
+	AttrType type;
+	bool isNull = false;
+	int write_offset = nullBytes;
+
+	for(unsigned i=0; i<attrNames.size(); i++){
+		isNull = false;
+		getAttrVal(data, recordDescriptor, attrNames[i], attrIntVal, attrRealVal, attrVarCharVal, type, isNull);
+
+		//switch - bitArray update and copy the data
+		switch(type){
+			case TypeInt:{
+				if(isNull){
+					bitArray[i] = 1;
+					break;
+				}
+				memcpy((char*)retData+write_offset, &attrIntVal, sizeof(int));
+				write_offset += sizeof(int);
+				break;
+			}
+			case TypeReal:{
+				if(isNull){
+					bitArray[i] = 1;
+					break;
+				}
+				memcpy((char*)retData+write_offset, &attrRealVal, sizeof(float));
+				write_offset += sizeof(float);
+				break;
+			}
+			case TypeVarChar:{
+				if(isNull){
+					bitArray[i] = 1;
+					break;
+				}
+				int len = attrVarCharVal.length();
+				memcpy((char*)retData+write_offset, &len, sizeof(int));
+				write_offset += sizeof(int);
+				memcpy((char*)retData+write_offset, &attrVarCharVal, len);
+				write_offset += len;
+				break;
+			}
+		}
+
+	}
+
+	unsigned char* nullByteBuffer = (unsigned char*)malloc(nullBytes);
+	memset(nullByteBuffer, 0, nullBytes);
+	prepareNullBytes(nullByteBuffer, bitArray, nullBytes);
+
+	//memcpy
+	memcpy(retData, nullByteBuffer, nullBytes);
+
+	free(nullByteBuffer);
+	delete[](bitArray);
+
+	return 0;
+}
 
 
 //Projection
@@ -399,8 +556,8 @@ RC Project::getNextTuple(void *data){
 	void* newData = malloc(PAGE_SIZE);
 	while(this->project_itr->getNextTuple(newData) != -1){
 		flag = 1;
-
-
+		prepareProject(newData, data, this->project_attrs, attrNames);
+		return 0;
 	}
 	if(flag == 0){
 		return -1;
