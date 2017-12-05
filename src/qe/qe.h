@@ -1,11 +1,13 @@
 #ifndef _qe_h_
 #define _qe_h_
 
+#include <string>
 #include <vector>
+#include <unordered_map>
 
+#include "../rbf/pfm.h"
 #include "../rbf/rbfm.h"
 #include "../rm/rm.h"
-#include "../ix/ix.h"
 
 #define QE_EOF (-1)  // end of the index scan
 
@@ -232,19 +234,39 @@ class BNLJoin : public Iterator {
 	Condition condition;
 	unsigned numPages;
 
-    // Block nested-loop join operator
-    public:
-        BNLJoin(Iterator *leftIn,            // Iterator of input R
-               TableScan *rightIn,           // TableScan Iterator of input S
-               const Condition &condition,   // Join condition
-               const unsigned numPages       // # of pages that can be loaded into memory,
-			                                 //   i.e., memory block size (decided by the optimizer)
-        );
-        ~BNLJoin(){};
+	// My Variables
+	vector<Attribute> leftDataRd;
+	vector<Attribute> rightDataRd;
+	AttrType attrtype;
 
-        RC getNextTuple(void *data);
-        // For attribute in vector<Attribute>, name it as rel.attr
-        void getAttributes(vector<Attribute> &attrs) const;
+	// My unordered maps
+	unordered_map<int, void*> IntHashMap;
+	unordered_map<float, void*> RealHashMap;
+	unordered_map<string, void*> VarCharHashMap;
+
+	// My functions
+	RC createHashMap(void*, const vector<Attribute> &, const string &, const AttrType &);
+	RC createIntHashMap(int &, void*);
+	RC createRealHashMap(float &, void*);
+	RC createVarCharHashMap(string &, void*);
+	RC clearHashMap(AttrType);
+	RC clearIntHashMap();
+	RC clearRealHashMap();
+	RC clearVarCharHashMap();
+
+	// Block nested-loop join operator
+	public:
+		BNLJoin(Iterator *leftIn,            // Iterator of input R
+			   TableScan *rightIn,           // TableScan Iterator of input S
+			   const Condition &condition,   // Join condition
+			   const unsigned numPages       // # of pages that can be loaded into memory,
+											 //   i.e., memory block size (decided by the optimizer)
+		);
+		~BNLJoin(){};
+
+		RC getNextTuple(void *data);
+		// For attribute in vector<Attribute>, name it as rel.attr
+		void getAttributes(vector<Attribute> &attrs) const;
 };
 
 

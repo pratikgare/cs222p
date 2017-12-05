@@ -1,16 +1,14 @@
 
 #include <qe/qe.h>
-#include <rbf/pfm.h>
 #include <stdlib.h>
 #include <cfloat>
-#include <climits>
 #include <cmath>
 #include <cstring>
 #include <iostream>
-#include <string>
+#include <utility>
 
 
-RC extractNullbitArray(const void* data, int* nullbitArr, int &fields, int &nullBytes){
+RC extractNullbitArray(const void* data, int* nullbitArr, const int &fields, int &nullBytes){
 
 	nullBytes = (int) ceil((double) fields / 8.0);
 
@@ -22,6 +20,44 @@ RC extractNullbitArray(const void* data, int* nullbitArr, int &fields, int &null
 		nullbitArr[i] = byte[i/8] & (1<<(7-(i%8)));
 	}
 
+	return 0;
+}
+
+RC calculateDataSize(const void* data, const vector<Attribute> &dataRd, int &dataSize){
+
+	int fields = dataRd.size();
+	int* nullbitarr = new int[fields];
+	int nullBytesLength = 0;
+
+	extractNullbitArray(data, nullbitarr, fields, nullBytesLength);
+
+	dataSize = nullBytesLength;
+
+	for(int i=0; i < fields; i++){
+
+		if(nullbitarr[i] == 0){
+			switch(dataRd[i].type){
+
+				case TypeInt:		dataSize += sizeof(int);
+									break;
+
+				case TypeReal:		dataSize += sizeof(float);
+									break;
+
+				case TypeVarChar:	int len = 0;
+									memcpy(&len, (char*)data + dataSize, sizeof(int));
+									dataSize += sizeof(int) + len;
+									break;
+			}
+
+
+
+
+		}
+
+	}
+
+	delete[] nullbitarr;
 	return 0;
 }
 
@@ -89,6 +125,18 @@ RC getAttrVal(const void* data, const vector<Attribute> &recordDescriptor, const
 	}
 	delete[] bitArray;
 	return 0;
+}
+
+RC getAttributeType(const vector<Attribute> &recordDescriptor, const string &attrName, AttrType &attrtype){
+
+	for(int i = 0; i < recordDescriptor.size(); i++){
+		if(recordDescriptor[i].name.compare(attrName) == 0){
+			attrtype = recordDescriptor[i].type;
+			return 0;
+		}
+	}
+
+	return -1;
 }
 
 bool compareInt(const int &left, const int &right, const CompOp &op){
@@ -584,23 +632,346 @@ void Aggregate::getAttributes(vector<Attribute> &attrs) const{
 }
 
 //Joins
-//BNL
 BNLJoin::BNLJoin(Iterator *leftIn, TableScan *rightIn, const Condition &condition, const unsigned numPages){
 	this->leftIn_itr = leftIn;
 	this->rightIn_tscan = rightIn;
 	this->condition = condition;
 	this->numPages = numPages;
+	this->leftIn_itr->getAttributes(this->leftDataRd);
+	this->rightIn_tscan->getAttributes(this->rightDataRd);
+	getAttributeType(this->leftDataRd, this->condition.lhsAttr, this->attrtype);
+}
+
+RC prepareRecordDescriptor(const vector<Attribute> &leftDataRd, const vector<Attribute> &rightDataRd, vector<Attribute> &returnedDataRd){
+
+	int leftRdSize = leftDataRd.size();
+	int rightRdsize = rightDataRd.size();
+
+	for(int i=0; i < (leftRdSize + rightRdsize) ; i++){
+
+		if(i < leftRdSize){
+			// Pushing back of left recordDescriptor
+			returnedDataRd.push_back(leftDataRd[i]);
+		}
+		else{
+			// Pushing back of right recordDescriptor
+			returnedDataRd.push_back(rightDataRd[i-leftRdSize]);
+		}
+	}
+	return 0;
+}
+
+RC createNullBytesFromTwoNullBitArrays(const int* leftnullBitArr, const int &leftFields, const int* rightnullBitArr, const int &rightFields, unsigned char* returnedDataNullBytes){
+
+	unsigned char k = 0;
+	int a = 0;
+	int b = 0;
+
+	// NullBytes creation of output data
+	for(int z=0; z < (leftFields + rightFields); z++){
+
+		b = z % 8;
+		if(b == 0){
+			// Initialization after every 8 bits
+			k = 0;
+			a = (int)(z/8);
+			returnedDataNullBytes[a] = 0;
+		}
+
+		k = 1 << (7-b);
+
+		if( z < leftFields){
+			if(leftnullBitArr[z] == 1){
+				returnedDataNullBytes[a] = returnedDataNullBytes[a] + k;
+			}
+		}
+		else{
+			if(rightnullBitArr[z - leftFields] == 1){
+				returnedDataNullBytes[a] = returnedDataNullBytes[a] + k;
+			}
+		}
+
+	}
+
+	return 0;
+}
+
+RC prepareNullBytes(const void* leftData, const int &leftFields, const void* rightData, const int &rightFields, unsigned char* returnedDataNullBytes){
+
+	int* leftnullBitArr = new int[leftFields];
+	int* rightnullBitArr = new int[rightFields];
+
+	// extract left nullBit Array
+	int leftnullBytes = 0;
+	extractNullbitArray(leftData, leftnullBitArr, leftFields, leftnullBytes);
+
+	// extract right nullBit Array
+	int rightnullBytes = 0;
+	extractNullbitArray(rightData, rightnullBitArr, rightFields, rightnullBytes);
+
+	// create NullBytes from two Null Bit Arrays
+	createNullBytesFromTwoNullBitArrays(leftnullBitArr, leftFields, rightnullBitArr, rightFields, returnedDataNullBytes);
+
+	delete[] leftnullBitArr;
+	delete[] rightnullBitArr;
+	return 0;
+}
+
+RC joinTwoRecords(const void* leftData, const vector<Attribute> &leftDataRd, const void* rightData, const vector<Attribute> &rightDataRd,
+				  void* returnedData, vector<Attribute> &returnedDataRd){
+
+
+
+	// Prepare returned Data recordDescriptor
+	prepareRecordDescriptor(leftDataRd, rightDataRd, returnedDataRd);
+
+
+	// Prepare returned Data nullBytes
+	int leftFields = leftDataRd.size();
+	int leftDataNullBytesLength = ceil(leftFields/8.0);
+
+	int rightFields = rightDataRd.size();
+	int rightDataNullBytesLength = ceil(rightFields/8.0);
+
+	int returnedDataFields = leftFields + rightFields;
+	int returnedDataNullBytesLength = ceil(returnedDataFields/8.0);
+
+	unsigned char* returnedDataNullBytes = (unsigned char*)malloc(returnedDataNullBytesLength);
+	memset(returnedDataNullBytes, 0, returnedDataNullBytesLength);
+	prepareNullBytes(leftData, leftFields, rightData, rightFields, returnedDataNullBytes);
+
+
+	// Final creation of returnedData after joining
+
+	// Appending common nullBytes
+	int offset = 0;
+	memcpy((char*)returnedData + offset, returnedDataNullBytes, returnedDataNullBytesLength);
+	offset += returnedDataNullBytesLength;
+
+	// Appending leftData without nullBytes
+	int leftDataSize = 0;
+	calculateDataSize(leftData, leftDataRd, leftDataSize);
+	memcpy((char*)returnedData + offset, (char*)leftData + leftDataNullBytesLength, leftDataSize - leftDataNullBytesLength);
+	offset += leftDataSize - leftDataNullBytesLength;
+
+	// Appending rightData without nullBytes
+	int rightDataSize = 0;
+	calculateDataSize(rightData, rightDataRd, rightDataSize);
+	memcpy((char*)returnedData + offset, (char*)rightData + rightDataNullBytesLength, rightDataSize - rightDataNullBytesLength);
+	offset += rightDataSize - rightDataNullBytesLength;
+
+	free(returnedDataNullBytes);
+	return 0;
+}
+
+RC BNLJoin::createIntHashMap(int &leftInt, void* leftData){
+	IntHashMap.insert(make_pair(leftInt, leftData));
+	return 0;
+}
+
+RC BNLJoin::createRealHashMap(float &leftReal, void* leftData){
+	RealHashMap.insert(make_pair(leftReal, leftData));
+	return 0;
+}
+
+RC BNLJoin::createVarCharHashMap(string &leftVarChar, void* leftData){
+	VarCharHashMap.insert(make_pair(leftVarChar, leftData));
+	return 0;
+}
+
+RC BNLJoin::createHashMap(void* leftData, const vector<Attribute> &leftDataRd, const string &lhsAttr, const AttrType &attrtype){
+
+	int leftInt = 0;
+	float leftReal = 0.0;
+	string leftVarChar = "";
+	AttrType leftattrtype;
+	getAttrVal(leftData, leftDataRd, lhsAttr, leftInt, leftReal, leftVarChar, leftattrtype);
+
+	switch(attrtype){
+
+	case TypeInt: 		createIntHashMap(leftInt, leftData);
+						break;
+
+	case TypeReal: 		createRealHashMap(leftReal, leftData);
+						break;
+
+	case TypeVarChar: 	createVarCharHashMap(leftVarChar, leftData);
+						break;
+	}
+
+	return 0;
+
 }
 
 RC BNLJoin::getNextTuple(void *data){
 
+	// Step-1 : Create In-Memory HashMap using leftIn
+	void* bufferdata;
+	void* prev_data;
+	int leftDataSize = 0;
+	int size_count = 0;
+	bool end_of_file = false;
+	int iteration_count = 0;
 
+	while(!end_of_file){
+
+		iteration_count++;
+
+		end_of_file = true;
+		size_count = 0;
+
+		// can free this one after every while loop
+		bufferdata = malloc(PAGE_SIZE);
+
+		while(this->leftIn_itr->getNextTuple(bufferdata) != -1){
+
+			if(iteration_count != 1){
+				createHashMap(prev_data, this->leftDataRd, this->condition.lhsAttr, this->attrtype);
+			}
+
+			calculateDataSize(bufferdata, leftDataRd, leftDataSize);
+
+			// Don't free this leftdata, otherwise you will be in trouble
+			void* leftdata = malloc(leftDataSize);
+			memcpy(leftdata, bufferdata, leftDataSize);
+
+			//size_count += leftDataSize;
+
+			if(size_count > (numPages*PAGE_SIZE)){
+				// clear everything and go for the next iteration
+				// Don't free this prev_data, otherwise you will be in trouble
+				prev_data = malloc(leftDataSize);
+				memcpy(prev_data, leftdata, leftDataSize);
+				clearHashMap(this->attrtype);
+				end_of_file = false;
+				size_count = 0;
+				break;
+			}
+
+			createHashMap(leftdata, this->leftDataRd, this->condition.lhsAttr, this->attrtype);
+			size_count += leftDataSize;
+		}
+
+		// Step-2 : Iterate Through rightIn and do hash look up
+
+		void* rightData = malloc(PAGE_SIZE);
+		int IntRightData = 0;
+		float RealRightData = 0.0;
+		string VarcharRightData = "";
+		AttrType righttype;
+		void* leftData_temp;
+		int leftData_temp_size = 0;
+		bool hit_found = false;
+
+		while(this->rightIn_tscan->getNextTuple(rightData) != -1){
+
+			getAttrVal(rightData, this->rightDataRd, this->condition.rhsAttr, IntRightData, RealRightData, VarcharRightData, righttype);
+
+			switch(this->attrtype){
+
+			case TypeInt:	{	auto it = IntHashMap.find(IntRightData);
+								if(it != IntHashMap.end()){
+									// Hit Found in HashMap
+									hit_found = true;
+									calculateDataSize(it->second, leftDataRd, leftData_temp_size);
+									leftData_temp = malloc(leftData_temp_size);
+									memcpy(leftData_temp, it->second, leftData_temp_size);
+
+								}
+							}
+								break;
+			case TypeReal:	{	auto it = RealHashMap.find(RealRightData);
+								if(it != RealHashMap.end()){
+									// Hit Found in HashMap
+									hit_found = true;
+									calculateDataSize(it->second, leftDataRd, leftData_temp_size);
+									leftData_temp = malloc(leftData_temp_size);
+									memcpy(leftData_temp, it->second, leftData_temp_size);
+
+								}
+							}
+								break;
+			case TypeVarChar:{	auto it = VarCharHashMap.find(VarcharRightData);
+								if(it != VarCharHashMap.end()){
+									// Hit Found in HashMap
+									hit_found = true;
+									calculateDataSize(it->second, leftDataRd, leftData_temp_size);
+									leftData_temp = malloc(leftData_temp_size);
+									memcpy(leftData_temp, it->second, leftData_temp_size);
+								}
+							}
+								break;
+		}
+			if(hit_found){
+				break;
+			}
+		}
+
+		if(hit_found){
+			// Step-3 : Return the two joined records
+			vector<Attribute> returnedDataAttributes;
+			joinTwoRecords(leftData_temp, leftDataRd, rightData, rightDataRd, data, returnedDataAttributes);
+
+			free(bufferdata);
+			free(rightData);
+			free(leftData_temp);
+			return 0;
+		}
+
+	}
+
+	free(bufferdata);
 	return -1;
 }
 
 void BNLJoin::getAttributes(vector<Attribute> &attrs) const{
-
+	prepareRecordDescriptor(this->leftDataRd, this->rightDataRd, attrs);
 }
+
+RC BNLJoin::clearHashMap(AttrType type){
+
+	switch(type){
+	case TypeInt:		clearIntHashMap();
+						break;
+	case TypeReal:		clearRealHashMap();
+						break;
+	case TypeVarChar:	clearVarCharHashMap();
+						break;
+	}
+
+	return 0;
+}
+
+RC BNLJoin::clearIntHashMap(){
+
+	for(auto it = IntHashMap.begin(); it != IntHashMap.end(); it++){
+		free(it->second);
+	}
+
+	IntHashMap.clear();
+	return 0;
+}
+
+RC BNLJoin::clearRealHashMap(){
+
+	for(auto it = RealHashMap.begin(); it != RealHashMap.end(); it++){
+		free(it->second);
+	}
+
+	RealHashMap.clear();
+	return 0;
+}
+
+RC BNLJoin::clearVarCharHashMap(){
+
+	for(auto it = VarCharHashMap.begin(); it != VarCharHashMap.end(); it++){
+		free(it->second);
+	}
+
+	VarCharHashMap.clear();
+	return 0;
+}
+
 
 
 //INL
