@@ -57,7 +57,6 @@ RC RM_TEST_EXTRA_1(const string &tableName, const int nameLength, const string &
             cout << "***** [FAIL] Extra Credit Test Case 1 Failed. *****"<<endl;
             free(tuple);
             free(returnedData);
-            free(nullsIndicator);
         } else {
             rc = rm->printTuple(attrs2, returnedData);
             assert(rc == success && "RelationManager::printTuple() should not fail.");
@@ -66,7 +65,6 @@ RC RM_TEST_EXTRA_1(const string &tableName, const int nameLength, const string &
 
     free(tuple);
     free(returnedData);
-    free(nullsIndicator);
 
     cout << "***** Extra Credit Test Case 1 finished. The result will be examined. *****" << endl;
     return success;

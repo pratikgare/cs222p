@@ -376,10 +376,10 @@ RC FileHandle::putHiddenPageIntoDisk(){
 	fwrite(hiddenPageChunk, HPC_CHUNK, 1, handle);
 	fflush(handle);
 
-//	if(hiddenPageChunk){
-//		free(hiddenPageChunk);
-//		hiddenPageChunk = NULL;
-//	}
+	if(hiddenPageChunk){
+		free(hiddenPageChunk);
+		hiddenPageChunk = NULL;
+	}
 
 	return 0;
 

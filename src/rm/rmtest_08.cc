@@ -36,8 +36,6 @@ RC TEST_RM_8(const string &tableName, vector<RID> &rids, vector<int> &sizes)
     }
 
     free(tuple);
-    free(nullsIndicator);
-
     writeRIDsToDisk(rids);
     writeSizesToDisk(sizes);
 

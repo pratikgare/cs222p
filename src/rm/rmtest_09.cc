@@ -36,16 +36,12 @@ RC TEST_RM_09(const string &tableName, vector<RID> &rids, vector<int> &sizes)
         if(memcmp(returnedData, tuple, sizes[i]) != 0)
         {
             cout << "***** [FAIL] Test Case 9 Failed *****" << endl << endl;
-            free(tuple);
-            free(returnedData);
-            free(nullsIndicator);
             return -1;
         }
     }
 
     free(tuple);
     free(returnedData);
-    free(nullsIndicator);
 
     cout << "***** Test Case 9 Finished. The result will be examined. *****" << endl << endl;
     

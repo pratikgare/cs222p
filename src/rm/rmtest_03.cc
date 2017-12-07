@@ -57,7 +57,6 @@ RC TEST_RM_3(const string &tableName, const int nameLength, const string &name, 
         free(tuple);
         free(updatedTuple);
         free(returnedData);
-        free(nullsIndicator);
         return 0;
     }
     else
@@ -66,7 +65,6 @@ RC TEST_RM_3(const string &tableName, const int nameLength, const string &name, 
         free(tuple);
         free(updatedTuple);
         free(returnedData);
-        free(nullsIndicator);
         return -1;
     }
 

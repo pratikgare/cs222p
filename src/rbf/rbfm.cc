@@ -249,6 +249,7 @@ RC createRecordInMyFormat(const void *data, void* record, int &recordSize, const
 
 	recordSize = record_offset;
 	delete[] nullbitArr;
+	free(fieldData);
 	return 0;
 }
 
@@ -1456,6 +1457,8 @@ bool RBFM_ScanIterator::checkCondition(void* page_data, short &slotOffset, short
 	int recordSize = (int) slotLength;
 	memcpy(record, (char*)page_data + slotOffset, slotLength);
 
+	bool b = false;
+
 	void* condition_data = malloc(PAGE_SIZE);
 	int data_size = 0;
 	// This will return condition_data with NullBytes (remove one byte of nullbyte first)
@@ -1553,32 +1556,53 @@ bool RBFM_ScanIterator::checkCondition(void* page_data, short &slotOffset, short
 
 						free(condition_data);
 
-						switch(compOp){
-						case EQ_OP : 	if(strcmp(condition_val, val) == 0)
-											return true;
-										break;
-						case LT_OP :		if(strcmp(condition_val, val) < 0)
-											return true;
-										break;
-						case LE_OP :		if(strcmp(condition_val, val) <= 0)
-											return true;
-										break;
-						case GT_OP :		if(strcmp(condition_val, val) > 0)
-											return true;
-										break;
-						case GE_OP :		if(strcmp(condition_val, val) >= 0)
-											return true;
-										break;
-						case NE_OP :		if(strcmp(condition_val, val) != 0)
-											return true;
-										break;
-						case NO_OP : 	return true;
-						}
-					}
-						break;
+		switch (compOp) {
+		case EQ_OP:
+			if (strcmp(condition_val, val) == 0)
+				b = true;
+			free(condition_val);
+			free(val);
+			break;
+		case LT_OP:
+			if (strcmp(condition_val, val) < 0)
+				b = true;
+			free(condition_val);
+			free(val);
+			break;
+		case LE_OP:
+			if (strcmp(condition_val, val) <= 0)
+				b = true;
+			free(condition_val);
+			free(val);
+			break;
+		case GT_OP:
+			if (strcmp(condition_val, val) > 0)
+				b = true;
+			free(condition_val);
+			free(val);
+			break;
+		case GE_OP:
+			if (strcmp(condition_val, val) >= 0)
+				b = true;
+			free(condition_val);
+			free(val);
+			break;
+		case NE_OP:
+			if (strcmp(condition_val, val) != 0)
+				b = true;
+			free(condition_val);
+			free(val);
+			break;
+		case NO_OP:
+			free(condition_val);
+			free(val);
+			b = true;
+		}
+	}
+	break;
 	}
 
-	return false;
+	return b;
 }
 
 RC RBFM_ScanIterator::findHit(RID &rid, void *data){
@@ -1695,7 +1719,7 @@ RC RBFM_ScanIterator::findHit(RID &rid, void *data){
 	void* hit_record = malloc(PAGE_SIZE);
 	int hit_record_size = 0;
 
-	for(int i=0; i<attributeNames.size(); i++){
+	for(unsigned i=0; i<attributeNames.size(); i++){
 
 		extractSingleAttributeFromMyData(record, recordSize, recordDescriptor, attributeNames[i], hit_record, hit_record_size);
 		if(hit_record_size < 4){
@@ -1737,6 +1761,8 @@ RC RBFM_ScanIterator::findHit(RID &rid, void *data){
 
 	// Write this nullBytes into hit_data
 	memcpy(hit_data, hit_nullB, hit_nullbytes);
+
+	free(hit_nullB);
 
 	// Writeback everything to data
 	memcpy(data, hit_data, hit_offset);

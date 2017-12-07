@@ -1,7 +1,6 @@
 include ../makefile.inc
 
-all: librbf.a rbftest1 rbftest2 rbftest3 rbftest4 rbftest5 rbftest6 rbftest7 rbftest8 rbftest8b rbftest9 rbftest10 rbftest11 rbftest12 rbftest_p0 rbftest_p1 rbftest_p1b rbftest_p1c rbftest_p2 rbftest_p2b rbftest_p3 rbftest_p4 rbftest_p5 rbftest_delete rbftest_update mytest_readattribute0 mytest_readattribute1 mytest_readattribute2 mytest_ScanIterator0 mytest_ScanIterator1 mytest_ScanIterator2 mytest_ScanIterator4
-
+all: librbf.a rbftest1 rbftest2 rbftest3 rbftest4 rbftest5 rbftest6 rbftest7 rbftest8 rbftest8b rbftest9 rbftest10 rbftest11 rbftest12
 
 # c file dependencies
 pfm.o: pfm.h
@@ -24,24 +23,6 @@ rbftest9.o: pfm.h rbfm.h
 rbftest10.o: pfm.h rbfm.h
 rbftest11.o: pfm.h rbfm.h
 rbftest12.o: pfm.h rbfm.h
-rbftest_p0.o: pfm.h rbfm.h
-rbftest_p1.o: pfm.h rbfm.h
-rbftest_p1b.o: pfm.h rbfm.h
-rbftest_p1c.o: pfm.h rbfm.h
-rbftest_p2.o: pfm.h rbfm.h
-rbftest_p2b.o: pfm.h rbfm.h
-rbftest_p3.o: pfm.h rbfm.h
-rbftest_p4.o: pfm.h rbfm.h
-rbftest_p5.o: pfm.h rbfm.h
-rbftest_delete.o: pfm.h rbfm.h
-rbftest_update.o: pfm.h rbfm.h
-mytest_readattribute0.o : pfm.h rbfm.h
-mytest_readattribute1.o : pfm.h rbfm.h
-mytest_readattribute2.o : pfm.h rbfm.h
-mytest_ScanIterator0.o : pfm.h rbfm.h
-mytest_ScanIterator1.o : pfm.h rbfm.h
-mytest_ScanIterator2.o : pfm.h rbfm.h
-mytest_ScanIterator4.o : pfm.h rbfm.h
 
 # binary dependencies
 rbftest1: rbftest1.o librbf.a $(CODEROOT)/rbf/librbf.a
@@ -57,24 +38,6 @@ rbftest9: rbftest9.o librbf.a $(CODEROOT)/rbf/librbf.a
 rbftest10: rbftest10.o librbf.a $(CODEROOT)/rbf/librbf.a
 rbftest11: rbftest11.o librbf.a $(CODEROOT)/rbf/librbf.a
 rbftest12: rbftest12.o librbf.a $(CODEROOT)/rbf/librbf.a
-rbftest_p0: rbftest_p0.o librbf.a $(CODEROOT)/rbf/librbf.a
-rbftest_p1: rbftest_p1.o librbf.a $(CODEROOT)/rbf/librbf.a
-rbftest_p1b: rbftest_p1b.o librbf.a $(CODEROOT)/rbf/librbf.a
-rbftest_p1c: rbftest_p1c.o librbf.a $(CODEROOT)/rbf/librbf.a
-rbftest_p2: rbftest_p2.o librbf.a $(CODEROOT)/rbf/librbf.a
-rbftest_p2b: rbftest_p2b.o librbf.a $(CODEROOT)/rbf/librbf.a
-rbftest_p3: rbftest_p3.o librbf.a $(CODEROOT)/rbf/librbf.a
-rbftest_p4: rbftest_p4.o librbf.a $(CODEROOT)/rbf/librbf.a
-rbftest_p5: rbftest_p5.o librbf.a $(CODEROOT)/rbf/librbf.a
-rbftest_delete: rbftest_delete.o librbf.a $(CODEROOT)/rbf/librbf.a
-rbftest_update: rbftest_update.o librbf.a $(CODEROOT)/rbf/librbf.a
-mytest_readattribute0: mytest_readattribute0.o librbf.a $(CODEROOT)/rbf/librbf.a
-mytest_readattribute1: mytest_readattribute1.o librbf.a $(CODEROOT)/rbf/librbf.a
-mytest_readattribute2: mytest_readattribute2.o librbf.a $(CODEROOT)/rbf/librbf.a
-mytest_ScanIterator0: mytest_ScanIterator0.o librbf.a $(CODEROOT)/rbf/librbf.a
-mytest_ScanIterator1: mytest_ScanIterator1.o librbf.a $(CODEROOT)/rbf/librbf.a
-mytest_ScanIterator2: mytest_ScanIterator2.o librbf.a $(CODEROOT)/rbf/librbf.a
-mytest_ScanIterator4: mytest_ScanIterator4.o librbf.a $(CODEROOT)/rbf/librbf.a
 
 # dependencies to compile used libraries
 .PHONY: $(CODEROOT)/rbf/librbf.a
@@ -83,4 +46,4 @@ $(CODEROOT)/rbf/librbf.a:
 
 .PHONY: clean
 clean:
-	-rm rbftest1 rbftest2 rbftest3 rbftest4 rbftest5 rbftest6 rbftest7 rbftest8 rbftest8b rbftest9 rbftest10 rbftest11 rbftest12 rbftest_p0 rbftest_p1 rbftest_p1b rbftest_p1c rbftest_p2 rbftest_p2b rbftest_p3 rbftest_p4 rbftest_p5 rbftest_delete rbftest_update mytest_readattribute0 mytest_readattribute1 mytest_readattribute2 mytest_ScanIterator0 mytest_ScanIterator1 mytest_ScanIterator2 mytest_ScanIterator4 *.a *.o *~
+	-rm rbftest1 rbftest2 rbftest3 rbftest4 rbftest5 rbftest6 rbftest7 rbftest8 rbftest8b rbftest9 rbftest10 rbftest11 rbftest12 *.a *.o *~

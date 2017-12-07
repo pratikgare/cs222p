@@ -45,7 +45,6 @@ RC TEST_RM_1(const string &tableName, const int nameLength, const string &name, 
         cout << "**** RM Test Case 1 finished. The result will be examined. *****" << endl << endl;
         free(tuple);
         free(returnedData);
-        free(nullsIndicator);
         return success;
     }
     else
@@ -53,7 +52,6 @@ RC TEST_RM_1(const string &tableName, const int nameLength, const string &name, 
         cout << "**** [FAIL] RM Test Case 1 failed *****" << endl << endl;
         free(tuple);
         free(returnedData);
-        free(nullsIndicator);
         return -1;
     }
 

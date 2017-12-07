@@ -16,7 +16,7 @@ RC RM_TEST_EXTRA_2(const string &tableName, const int nameLength, const string &
     Attribute attr;
     attr.name = "SSN";
     attr.type = TypeInt;
-    attr.length = 4;
+    attr.length = 9;
     RC rc = rm->addAttribute(tableName, attr);
     assert(rc == success && "RelationManager::addAttribute() should not fail.");
     
@@ -49,7 +49,6 @@ RC RM_TEST_EXTRA_2(const string &tableName, const int nameLength, const string &
         cout << "***** [FAIL] Extra Credit Test Case 2 Failed *****" << endl << endl;
         free(tuple);
         free(returnedData);
-        free(nullsIndicator);
         return -1;
     }
     else
@@ -57,7 +56,6 @@ RC RM_TEST_EXTRA_2(const string &tableName, const int nameLength, const string &
         cout << "***** Extra Credit Test Case 2 Finished. The result will be examined. *****" << endl << endl;
         free(tuple);
         free(returnedData);
-        free(nullsIndicator);
         return success;
     }
 

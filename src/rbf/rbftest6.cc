@@ -69,6 +69,7 @@ int RBFTest_6(PagedFileManager *pfm)
         rc = pfm->closeFile(fileHandle);
         return -1;
     }
+    cout << "before:R W A - " << readPageCount << " " << writePageCount << " " << appendPageCount << " after:R W A - " << readPageCount1 << " " << writePageCount1 << " " << appendPageCount1 << endl;
     assert(writePageCount1 > writePageCount && "The writePageCount should have been increased.");
     assert(readPageCount1 > readPageCount && "The readPageCount should have been increased.");
 

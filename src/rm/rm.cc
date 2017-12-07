@@ -287,6 +287,8 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 
 	}
 
+	free(nullBytes);
+
 	//Close the Columns file
 	if(rbfm->closeFile(fileHandle)!=0){
 		return -1;
@@ -298,6 +300,7 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 		}
 	}
 
+	free(recordBuffer);
 	return 0;
 }
 
@@ -328,6 +331,9 @@ RC getTableId(const string &tableName, int &tId, RID &rid){
 	memcpy(&tId, (char*)data+sizeof(char), sizeof(int));
 
 	rmsi.close();
+
+	free(data);
+	free(tableNameBuffer);
 
 	return 0;
 }
@@ -430,6 +436,10 @@ RC RelationManager::deleteTable(const string &tableName)
 		}
 	}
 
+
+	free(buffer);
+	free(tIdBuffer);
+
     return 0;
 }
 
@@ -516,6 +526,9 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	if(rbfm->closeFile(rmsi.fileHandle) != 0){
 		return -1;
 	}
+
+	free(tIdBuffer);
+	free(buffer);
 
     return 0;
 }
@@ -684,6 +697,8 @@ RC RelationManager::insertTuple(const string &tableName, const void *data, RID &
 	}
 
 
+	free(retData);
+	free(key);
     return 0;
 }
 
@@ -760,6 +775,10 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 		}
 	}
 
+
+	free(data);
+	free(retData);
+	free(key);
 
     return 0;
 }
@@ -843,6 +862,10 @@ RC RelationManager::updateTuple(const string &tableName, const void *data, const
 		}
 	}
 
+	free(retData);
+	free(dataOld);
+	free(key);
+	free(keyOld);
     return 0;
 }
 
@@ -1088,6 +1111,8 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 		return -1;
 	}
 
+	free(indexEntry);
+	free(nullBytes);
 	return 0;
 }
 
@@ -1145,6 +1170,9 @@ RC RelationManager::destroyIndex(const string &tableName, const string &attribut
 	if(rbfm->closeFile(rmsi.fileHandle) != 0){
 		return -1;
 	}
+
+	free(buffer);
+	free(fileNameBuffer);
 
 	return 0;
 }

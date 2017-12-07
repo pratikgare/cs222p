@@ -60,7 +60,6 @@ RC TEST_RM_13b(const string &tableName)
         assert(rc == success && "RelationManager::insertTuple() should not fail.");
 
         rids[i] = rid;
-        free(tuple);
     }
 
     // Set up the iterator
@@ -86,9 +85,6 @@ RC TEST_RM_13b(const string &tableName)
 				cout << "***** [FAIL] Test Case 13B Failed *****" << endl << endl;
 				rmsi.close();
 				free(returnedData);
-				free(suffix);
-				free(nullsIndicator);
-				free(nullsIndicatorWithNull);
 				return -1;
 			}
 		} else {
@@ -97,17 +93,11 @@ RC TEST_RM_13b(const string &tableName)
 			cout << "***** [FAIL] Test Case 13B Failed *****" << endl << endl;
 			rmsi.close();
 			free(returnedData);
-			free(suffix);
-			free(nullsIndicator);
-			free(nullsIndicatorWithNull);
 			return -1;
 		}
     }
     rmsi.close();
-	free(returnedData);
-	free(suffix);
-	free(nullsIndicator);
-	free(nullsIndicatorWithNull);
+    free(returnedData);
 
 	rc = rm->deleteTable("tbl_b_employee5");
 	

@@ -53,6 +53,8 @@ int RBFTest_8(RecordBasedFileManager *rbfm) {
 
     // Insert a record into a file and print the record
     prepareRecord(recordDescriptor.size(), nullsIndicator, 8, "Anteater", 25, 177.8, 6200, record, &recordSize);
+    cout << endl << "Inserting Data:" << endl;
+    rbfm->printRecord(recordDescriptor, record);
     
     rc = rbfm->insertRecord(fileHandle, recordDescriptor, record, rid);
     assert(rc == success && "Inserting a record should not fail.");
@@ -60,6 +62,9 @@ int RBFTest_8(RecordBasedFileManager *rbfm) {
     // Given the rid, read the record from file
     rc = rbfm->readRecord(fileHandle, recordDescriptor, rid, returnedData);
     assert(rc == success && "Reading a record should not fail.");
+
+    cout << endl << "Returned Data:" << endl;
+    rbfm->printRecord(recordDescriptor, returnedData);
 
     // Compare whether the two memory blocks are the same
     if(memcmp(record, returnedData, recordSize) != 0)

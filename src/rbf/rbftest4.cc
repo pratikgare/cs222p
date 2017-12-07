@@ -64,6 +64,7 @@ int RBFTest_4(PagedFileManager *pfm)
         rc = pfm->closeFile(fileHandle);
         return -1;
     }
+    cout << "before:R W A - " << readPageCount << " " << writePageCount << " " << appendPageCount << " after:R W A - " << readPageCount1 << " " << writePageCount1 << " " << appendPageCount1 << endl;
     assert(appendPageCount1 > appendPageCount && "The appendPageCount should have been increased.");
        
     // Get the number of pages

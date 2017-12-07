@@ -36,7 +36,6 @@ RC TEST_RM_6(const string &tableName)
         assert(rc == success && "RelationManager::insertTuple() should not fail.");
 
         rids[i] = rid;
-        free(tuple);
     }
 
     // Set up the iterator
@@ -50,19 +49,18 @@ RC TEST_RM_6(const string &tableName)
     nullAttributesIndicatorActualSize = getActualByteForNullsIndicator(attributes.size());
     while(rmsi.getNextTuple(rid, returnedData) != RM_EOF)
     {
+        // cout << "Returned Age: " << *(int *)((char *)returnedData+nullAttributesIndicatorActualSize) << endl;
         if (ages.find(*(int *)((char *)returnedData+nullAttributesIndicatorActualSize)) == ages.end())
         {
             cout << "***** [FAIL] Test Case 6 Failed *****" << endl << endl;
             rmsi.close();
             free(returnedData);
-            free(nullsIndicator);
             return -1;
         }
     }
     rmsi.close();
 
     free(returnedData);
-    free(nullsIndicator);
     cout << "***** Test Case 6 Finished. The result will be examined. *****" << endl << endl;
     return 0;
 }

@@ -87,6 +87,10 @@ int RBFTest_11(RecordBasedFileManager *rbfm) {
                     sizeof(unsigned));
             ridsFile.write(reinterpret_cast<const char*>(&rids[i].slotNum),
                     sizeof(unsigned));
+            if (i % 1000 == 0) {
+                cout << "RID #" << i << ": " << rids[i].pageNum << ", "
+                        << rids[i].slotNum << endl;
+            }
         }
         ridsFile.close();
     }

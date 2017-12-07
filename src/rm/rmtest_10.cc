@@ -52,14 +52,12 @@ RC TEST_RM_10(const string &tableName, vector<RID> &rids, vector<int> &sizes)
             cout << "***** [FAIL] Test Case 10 Failed *****" << endl << endl;
             free(tuple);
             free(returnedData);
-            free(nullsIndicator);
             return -1;
         }
     }
 
     free(tuple);
     free(returnedData);
-    free(nullsIndicator);
 
     cout << "***** Test Case 10 Finished. The result will be examined. *****" << endl << endl;
 
