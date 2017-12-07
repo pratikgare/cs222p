@@ -2016,6 +2016,16 @@ RC IX_ScanIterator::findHit(RID &rid, void* key, AttrType type){
 	// Got the position, now check where position is less than PAGE_SIZE or not
 	if(position <= PAGE_SIZE){
 
+		short fs = 0;
+		getFreeSpace(page, fs);
+
+		short rightPgNumber = 0;
+		getPointerToRight(page, rightPgNumber);
+		if(position >= (PAGE_SIZE - fs) && rightPgNumber == -1){
+			return -1;
+		}
+
+
 		// FoundHit
 		extractKey(page, position, type, key, keyLength);
 

@@ -275,6 +275,11 @@ class INLJoin : public Iterator {
 	IndexScan* rightIn_iscan;
 	Condition condition;
 
+	// My Variables
+	vector<Attribute> leftDataRd;
+	vector<Attribute> rightDataRd;
+	AttrType attrtype;
+
     // Index nested-loop join operator
     public:
         INLJoin(Iterator *leftIn,           // Iterator of input R

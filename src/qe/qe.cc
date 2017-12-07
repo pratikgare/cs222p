@@ -546,7 +546,7 @@ Project::Project(Iterator* input, const vector<string> &attrNames){
 	this->project_itr = input;
 	this->attrNames = attrNames;
 
-	this->getAttributes(this->project_attrs);
+	this->project_itr->getAttributes(project_attrs);
 }
 
 RC Project::getNextTuple(void *data){
@@ -568,7 +568,18 @@ RC Project::getNextTuple(void *data){
 }
 
 void Project::getAttributes(vector<Attribute> &attrs) const{
-	this->project_itr->getAttributes(attrs);
+
+	vector<Attribute> myattrs;
+	this->project_itr->getAttributes(myattrs);
+
+	for(unsigned i=0; i<myattrs.size(); i++){
+		for(unsigned j=0; j<attrNames.size(); j++){
+			if(myattrs[i].name.compare(this->attrNames[j]) == 0){
+				attrs.push_back(myattrs[i]);
+				break;
+			}
+		}
+	}
 }
 
 
@@ -1136,15 +1147,87 @@ INLJoin::INLJoin(Iterator* leftIn, IndexScan* rightIn, const Condition &conditio
 	this->leftIn_itr = leftIn;
 	this->rightIn_iscan = rightIn;
 	this->condition = condition;
+
+	this->leftIn_itr->getAttributes(this->leftDataRd);
+	this->rightIn_iscan->getAttributes(this->rightDataRd);
+	getAttributeType(this->leftDataRd, this->condition.lhsAttr, this->attrtype);
 }
 
 RC INLJoin::getNextTuple(void* data){
 
+	void* left_data = malloc(PAGE_SIZE);
+	void* right_data = malloc(PAGE_SIZE);
+	int left_int = 0;
+	float left_real = 0.0f;
+	string left_varchar = "";
+	AttrType left_attr_type;
+	int right_int = 0;
+	float right_real = 0.0f;
+	string right_varchar = "";
+	int do_join = -1;
+
+	// Iterate through left record one by one till the end_of_file
+	while(this->leftIn_itr->getNextTuple(left_data) != -1){
+
+		// Extract left_val from the left_data
+		getAttrVal(left_data, leftDataRd, this->condition.lhsAttr, left_int, left_real, left_varchar, left_attr_type);
+
+		switch(left_attr_type){
+
+			case TypeInt:	{
+				void* key = malloc(sizeof(int));
+				memcpy(key, &left_int, sizeof(int));
+				this->rightIn_iscan->setIterator(key, key, true, true);
+				do_join = this->rightIn_iscan->getNextTuple(right_data);
+				free(key);
+				break;
+			}
+
+			case TypeReal:{
+				void* key = malloc(sizeof(float));
+				memcpy(key, &left_real, sizeof(float));
+				this->rightIn_iscan->setIterator(key, key, true, true);
+				do_join = this->rightIn_iscan->getNextTuple(right_data);
+				free(key);
+				break;
+			}
+
+			case TypeVarChar:{
+				int length = left_varchar.length();
+				void* key = malloc(sizeof(int) + length + 1);
+				int offset = 0;
+				memcpy((char*)key + offset, &length, sizeof(int));
+				offset += sizeof(int);
+				memcpy((char*)key + offset, left_varchar.c_str(), length + 1);
+				this->rightIn_iscan->setIterator(key, key, true, true);
+				do_join = this->rightIn_iscan->getNextTuple(right_data);
+				free(key);
+				break;
+			}
+		}
+
+		if(do_join == 0){
+			// Join the two records
+			vector<Attribute> returnedDataAttributes;
+			joinTwoRecords(left_data, leftDataRd, right_data, rightDataRd, data, returnedDataAttributes);
+			free(left_data);
+			free(right_data);
+			return 0;
+		}
+		else{
+			// continue to the next record
+			continue;
+		}
+	}
+
+	free(left_data);
+	free(right_data);
 	return -1;
+
 }
 
 void INLJoin::getAttributes(vector<Attribute> &attrs) const{
-
+	prepareRecordDescriptor(this->leftDataRd, this->rightDataRd, attrs);
 }
 
 
