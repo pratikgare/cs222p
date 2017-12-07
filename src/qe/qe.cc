@@ -973,9 +973,9 @@ RC BNLJoin::createHashMap(void* leftData, const vector<Attribute> &leftDataRd, c
 
 RC BNLJoin::getNextTuple(void *data){
 
-	// Step-1 : Create In-Memory HashMap using leftIn
 	void* bufferdata;
 	void* prev_data;
+	int prev_data_size = 0;
 	int leftDataSize = 0;
 	int size_count = 0;
 	bool end_of_file = false;
@@ -991,10 +991,14 @@ RC BNLJoin::getNextTuple(void *data){
 		// can free this one after every while loop
 		bufferdata = malloc(PAGE_SIZE);
 
+		// Step-1 : Create In-Memory HashMap using leftIn
 		while(this->leftIn_itr->getNextTuple(bufferdata) != -1){
 
 			if(iteration_count != 1){
+				size_count = 0;
+				clearHashMap(this->attrtype);
 				createHashMap(prev_data, this->leftDataRd, this->condition.lhsAttr, this->attrtype);
+				size_count += prev_data_size;
 			}
 
 			calculateDataSize(bufferdata, leftDataRd, leftDataSize);
@@ -1002,22 +1006,21 @@ RC BNLJoin::getNextTuple(void *data){
 			// Don't free this leftdata, otherwise you will be in trouble
 			void* leftdata = malloc(leftDataSize);
 			memcpy(leftdata, bufferdata, leftDataSize);
-
-			//size_count += leftDataSize;
+			size_count += leftDataSize;
 
 			if(size_count > (numPages*PAGE_SIZE)){
-				// clear everything and go for the next iteration
+				// don't clear everything, just save this data
 				// Don't free this prev_data, otherwise you will be in trouble
 				prev_data = malloc(leftDataSize);
 				memcpy(prev_data, leftdata, leftDataSize);
-				clearHashMap(this->attrtype);
+				prev_data_size = leftDataSize;
 				end_of_file = false;
 				size_count = 0;
 				break;
 			}
-
-			createHashMap(leftdata, this->leftDataRd, this->condition.lhsAttr, this->attrtype);
-			size_count += leftDataSize;
+			else{
+				createHashMap(leftdata, this->leftDataRd, this->condition.lhsAttr, this->attrtype);
+			}
 		}
 
 		// Step-2 : Iterate Through rightIn and do hash look up
@@ -1030,6 +1033,10 @@ RC BNLJoin::getNextTuple(void *data){
 		void* leftData_temp;
 		int leftData_temp_size = 0;
 		bool hit_found = false;
+
+		if(iteration_count != 1){
+			this->rightIn_tscan->setIterator();
+		}
 
 		while(this->rightIn_tscan->getNextTuple(rightData) != -1){
 
@@ -1088,6 +1095,7 @@ RC BNLJoin::getNextTuple(void *data){
 
 	}
 
+	clearHashMap(this->attrtype);
 	free(bufferdata);
 	return -1;
 }
